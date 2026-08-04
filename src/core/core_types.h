@@ -638,7 +638,7 @@ template <typename T> constexpr T RClamp(T value, T start, T end) { return (star
 template <typename T> constexpr T RClampStart(T value, T start, T end) { return (start <= end) ? ClampBot(value, start) : ClampTop(value, end); }
 template <typename T> constexpr T RClampEnd(T value, T start, T end) { return (start <= end) ? ClampTop(value, end) : ClampBot(value, start); }
 
-template <typename T, typename S> constexpr T ConvertRange(S oldStart, S oldEnd, T newStart, T newEnd, S value) { return (newStart + ((value - oldStart) * (newEnd - newStart) / (oldEnd - oldStart))); }
+template <typename T, typename S> constexpr T ConvertRange(S oldStart, S oldEnd, T newStart, T newEnd, S value) { return (newStart + (newEnd - newStart) * (static_cast<f64>(value - oldStart) / static_cast<f64>(oldEnd - oldStart))); }
 template <typename T> constexpr b8 IntervalSameDirection(T aStart, T aEnd, T bStart, T bEnd) { return (aStart == aEnd) || (bStart == bEnd) || ((aStart <= aEnd) == (bStart <= bEnd)); }
 template <typename T>
 constexpr b8 IntervalIntersected(T aStart, T aEnd, T bStart, T bEnd)
