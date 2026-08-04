@@ -290,6 +290,13 @@ namespace TJA
 		Count
 	};
 
+	struct SuddenParams
+	{
+		Time AppearanceOffset;
+		Time MovementOffset;
+		b8 HideRoll;
+	};
+
 	struct ParsedMainMetadata
 	{
 		std::string TITLE;

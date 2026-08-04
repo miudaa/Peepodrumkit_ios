@@ -220,7 +220,7 @@ namespace PeepoDrumKit
 	constexpr std::string_view PluralSuffixDefault = "s"; // unfortunately cannot just pass the string literal for now
 
 	template <typename TEvent>
-	constexpr std::string_view DisplayNameOfChartEvent = std::declval<std::string_view>(); // Forbid usage unless specialized
+	constexpr std::string_view DisplayNameOfChartEvent = ""; // Forbid usage unless specialized
 	template <typename TEvent>
 	constexpr std::string_view DisplayNameOfLongChartEvent = DisplayNameOfChartEvent<TEvent>;
 	template <typename TEvent>
