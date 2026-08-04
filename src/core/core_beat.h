@@ -5,6 +5,7 @@
 #include <functional>
 #include <utility>
 #include <numeric>
+#include <cmath>
 
 struct Beat
 {

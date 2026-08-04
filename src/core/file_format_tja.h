@@ -6,6 +6,10 @@
 #include <vector>
 #include <cstdarg>
 #include <map>
+#include <numeric>
+#include <cmath>
+#include <algorithm>
+#include <limits>
 
 // NOTE: "Token" -> smallest atomic piece of data.
 //		 A list of tokens basically losslessly represents a TJA file and exists to make parsing easier.
@@ -290,12 +294,23 @@ namespace TJA
 		Count
 	};
 
-	struct SuddenParams
-	{
-		Time AppearanceOffset;
-		Time MovementOffset;
-		b8 HideRoll;
-	};
+		struct SuddenParams
+		{
+			Time AppearanceOffset;
+			Time MovementOffset;
+			b8 HideRoll;
+		};
+
+		struct SuddenActiveState { b8 ShowActive, MoveActive, MoveDelayVisible, CanHideRollActive, HideRollActive; };
+		template <class T>
+		constexpr SuddenActiveState GetSuddenActiveState(const T& param) {
+			b8 isShowActive = !(std::isinf(param.AppearanceOffset.Seconds) && param.AppearanceOffset.Seconds > 0);
+			b8 isMoveActive = !(std::isinf(param.MovementOffset.Seconds) && param.MovementOffset.Seconds > 0);
+			b8 isMoveDelayVisible = (param.MovementOffset < param.AppearanceOffset);
+			b8 canHideRollActive = (isShowActive && !isMoveActive);
+			b8 isHideRollActive = (canHideRollActive && param.HideRoll);
+			return { isShowActive, isMoveActive, isMoveDelayVisible, canHideRollActive, isHideRollActive };
+		}
 
 	struct ParsedMainMetadata
 	{
