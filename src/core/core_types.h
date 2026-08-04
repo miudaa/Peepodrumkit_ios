@@ -195,6 +195,21 @@ constexpr size_t EnumCount = static_cast<size_t>(EnumType::Count);
 template <typename EnumType>
 constexpr i32 EnumCountI32 = static_cast<i32>(EnumType::Count);
 
+template <typename... Ts> using void_t = void;
+
+template <typename T, typename = void>
+struct EnumCountMemberHelper {};
+template <typename EnumType>
+struct EnumCountMemberHelper<EnumType, void_t<decltype(EnumType::Count)>> : std::integral_constant<EnumType, EnumType::Count> {};
+template <typename EnumType>
+struct EnumCountMemberHelper<EnumType, void_t<decltype(EnumType::COUNT)>> : std::integral_constant<EnumType, EnumType::COUNT> {};
+
+template <typename EnumType>
+constexpr EnumType EnumCountMember = EnumCountMemberHelper<EnumType>::value;
+
+template <typename... Ts> struct overloaded : Ts... { using Ts::operator()...; };
+template <typename... Ts> overloaded(Ts...) -> overloaded<Ts...>;
+
 template <typename EnumType>
 constexpr __forceinline size_t EnumToIndex(EnumType enumValue)
 {
