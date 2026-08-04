@@ -224,6 +224,15 @@ struct make_enum_sequence_helper<EnumType, std::integer_sequence<UnderlyingType,
 template <typename EnumType>
 using make_enum_sequence = typename make_enum_sequence_helper<EnumType, std::make_integer_sequence<std::underlying_type_t<EnumType>, static_cast<std::underlying_type_t<EnumType>>(EnumType::Count)>>::type;
 
+template <template <auto> typename EnumToType, typename T, typename EnumType, EnumType... Values>
+constexpr EnumType FirstMatchEnumToType(enum_sequence<EnumType, Values...>)
+{
+	return static_cast<EnumType>(std::min({ (expect_type_v<T, EnumToType<Values>> ? static_cast<size_t>(Values) : static_cast<size_t>(EnumType::Count))... }));
+}
+
+template <template <auto> typename EnumToType, typename T, typename EnumType>
+constexpr EnumType TypeToEnum = FirstMatchEnumToType<EnumToType, T>(make_enum_sequence<EnumType>{});
+
 // NOTE: Shorthand of repeated initialize arguments, required when the element type has no default constructor
 //		 Example: InitializedArray<i32, 3>(42), equivalent to std::array{42, 42, 42}
 template <typename T, typename... Ts, size_t... Is>

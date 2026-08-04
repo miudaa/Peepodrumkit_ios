@@ -121,10 +121,10 @@ namespace PeepoDrumKit
 			static_cast<i32>(DifficultyLevelDecimal::None), 
 			static_cast<i32>(DifficultyLevelDecimal::Max), 
 			(v == static_cast <i32>(DifficultyLevelDecimal::None))
-				? u8"None"
+				? "None"
 				: (v >= static_cast <i32>(DifficultyLevelDecimal::PlusThreshold))
-				? u8"%d (+)"
-				: u8"%d",
+				? "%d (+)"
+				: "%d",
 			ImGuiSliderFlags_AlwaysClamp))
 		{
 			*inOutLevel = static_cast<DifficultyLevelDecimal>(v);
@@ -160,7 +160,7 @@ namespace PeepoDrumKit
 		Gui::PushStyleColor(ImGuiCol_FrameBgHovered, Gui::GetStyleColorVec4(ImGuiCol_FrameBg));
 		Gui::PushStyleColor(ImGuiCol_FrameBgActive, Gui::GetStyleColorVec4(ImGuiCol_FrameBg));
 		if (i32 v = static_cast<i32>(*inOutLevel); Gui::SliderInt(label, &v,
-			static_cast<i32>(DifficultyLevel::Min), static_cast<i32>(DifficultyLevel::MaxSoft), u8"★ %d"))
+			static_cast<i32>(DifficultyLevel::Min), static_cast<i32>(DifficultyLevel::MaxSoft), "★ %d"))
 		{
 			*inOutLevel = static_cast<DifficultyLevel>(Clamp(v, static_cast<i32>(DifficultyLevel::Min), static_cast<i32>(DifficultyLevel::Max)));
 			valueWasChanged = true;
@@ -409,7 +409,7 @@ namespace PeepoDrumKit
 		Gui::Property::PropertyTextValueFunc(label, [&]
 		{
 			static constexpr i32 components = 2; // NOTE: Unicode "Rightwards Arrow" U+2192
-			static constexpr std::string_view divisionText = u8"  →  "; // "  ->  "; // " < > ";
+			static constexpr std::string_view divisionText = "  →  "; // "  ->  "; // " < > ";
 			const f32 divisionLabelWidth = Gui::CalcTextSize(Gui::StringViewStart(divisionText), Gui::StringViewEnd(divisionText)).x;
 			const f32 perComponentInputFloatWidth = Floor(((Gui::GetContentRegionAvail().x - divisionLabelWidth) / static_cast<f32>(components)));
 
@@ -555,8 +555,8 @@ namespace PeepoDrumKit
 					Gui::PopFont();
 
 					Gui::PushFont(FontMain, GuiScaleI32_AtTarget(FontBaseSizes::Small));
-					Gui::TextUnformatted(u8"- Support #SUDDEN (simulating TJAP3 behavior)");
-					Gui::TextUnformatted(u8"- (for the full change list, please refer to the commit history)");
+					Gui::TextUnformatted("- Support #SUDDEN (simulating TJAP3 behavior)");
+					Gui::TextUnformatted("- (for the full change list, please refer to the commit history)");
 					Gui::TextUnformatted("");
 					Gui::PopFont();
 					Gui::PopStyleColor();
@@ -570,32 +570,32 @@ namespace PeepoDrumKit
 					Gui::PopFont();
 
 					Gui::PushFont(FontMain, GuiScaleI32_AtTarget(FontBaseSizes::Small));
-					Gui::TextUnformatted(u8"- Add the possibility to reorder difficulties by dragging difficulty tabs");
-					Gui::TextUnformatted(u8"- Add support for STYLE: and #START P<n>");
-					Gui::TextUnformatted(u8"- Add comparison mode to compare difficulties side-by-side");
-					Gui::TextUnformatted(u8"- Add current #JPOSSCROLL position display on the judge mark");
-					Gui::TextUnformatted(u8"- The gameplay lane border now show the visible region in simulators when in wide view");
-					Gui::TextUnformatted(u8"- Add sound volume limiter and remove sound effects' play frequency limits");
-					Gui::TextUnformatted(u8"- AdLibs are now shown semi-transparent instead of hidden");
-					Gui::TextUnformatted(u8"- KaDon are now played with Don + Ka sounds instead of just Don");
-					Gui::TextUnformatted(u8"- Balloon-type notes' pop count is now shown when they are being popped");
-					Gui::TextUnformatted(u8"- Add “Buffer Frame Size” option for manually fixing audio distortion due to insufficient buffer size (in Settings → Audio Settings)");
-					Gui::TextUnformatted(u8"- Add proper SENote assignment and the コ (Ko) SENote");
-					Gui::TextUnformatted(u8"- Add Go-go time effect");
-					Gui::TextUnformatted(u8"- Add support for editing any localized TITLE: and SUBTITLE: with custom locales");
-					Gui::TextUnformatted(u8"- Fix #JPOSSCROLL's overlapping behavior (was not stopped by next #JPOSSCROLL as in simulators)");
-					Gui::TextUnformatted(u8"- Add support for the Handed Don (A) and Handed Katsu (B) notes");
-					Gui::TextUnformatted(u8"- Remove restriction of creating existing difficulties, for creating multiplayer charts and using comparison mode");
-					Gui::TextUnformatted(u8"- Fix inaccurate time interval of balloon-type note popping sound");
-					Gui::TextUnformatted(u8"- Add support for editing any unknown TJA headers");
-					Gui::TextUnformatted(u8"- Add support for number-less NOTESDESIGNER: and file-scope usage of numbered NOTESDESIGNER headers");
-					Gui::TextUnformatted(u8"- Fix notes in negative BPM were wrongly flipped horizontally and SENotes in positive BPM were wrongly rotated 180 degree");
-					Gui::TextUnformatted(u8"- (the following are hotfixes)");
-					Gui::TextUnformatted(u8"- Fix crash when player side and count numbers are too long");
-					Gui::TextUnformatted(u8"- Fix compared lanes wrongly used selected lane's beat and time position if their timing commands differ");
-					Gui::TextUnformatted(u8"- Fix flying notes moved with on-going #JPOSSCROLLs again due to reworking of #JPOSSCROLL in v1.2");
-					Gui::TextUnformatted(u8"- Fix undefined default Chart Stats tab docking position since v1.1.1");
-					Gui::TextUnformatted(u8"- (for the full change list, please refer to the commit history)");
+					Gui::TextUnformatted("- Add the possibility to reorder difficulties by dragging difficulty tabs");
+					Gui::TextUnformatted("- Add support for STYLE: and #START P<n>");
+					Gui::TextUnformatted("- Add comparison mode to compare difficulties side-by-side");
+					Gui::TextUnformatted("- Add current #JPOSSCROLL position display on the judge mark");
+					Gui::TextUnformatted("- The gameplay lane border now show the visible region in simulators when in wide view");
+					Gui::TextUnformatted("- Add sound volume limiter and remove sound effects' play frequency limits");
+					Gui::TextUnformatted("- AdLibs are now shown semi-transparent instead of hidden");
+					Gui::TextUnformatted("- KaDon are now played with Don + Ka sounds instead of just Don");
+					Gui::TextUnformatted("- Balloon-type notes' pop count is now shown when they are being popped");
+					Gui::TextUnformatted("- Add “Buffer Frame Size” option for manually fixing audio distortion due to insufficient buffer size (in Settings → Audio Settings)");
+					Gui::TextUnformatted("- Add proper SENote assignment and the コ (Ko) SENote");
+					Gui::TextUnformatted("- Add Go-go time effect");
+					Gui::TextUnformatted("- Add support for editing any localized TITLE: and SUBTITLE: with custom locales");
+					Gui::TextUnformatted("- Fix #JPOSSCROLL's overlapping behavior (was not stopped by next #JPOSSCROLL as in simulators)");
+					Gui::TextUnformatted("- Add support for the Handed Don (A) and Handed Katsu (B) notes");
+					Gui::TextUnformatted("- Remove restriction of creating existing difficulties, for creating multiplayer charts and using comparison mode");
+					Gui::TextUnformatted("- Fix inaccurate time interval of balloon-type note popping sound");
+					Gui::TextUnformatted("- Add support for editing any unknown TJA headers");
+					Gui::TextUnformatted("- Add support for number-less NOTESDESIGNER: and file-scope usage of numbered NOTESDESIGNER headers");
+					Gui::TextUnformatted("- Fix notes in negative BPM were wrongly flipped horizontally and SENotes in positive BPM were wrongly rotated 180 degree");
+					Gui::TextUnformatted("- (the following are hotfixes)");
+					Gui::TextUnformatted("- Fix crash when player side and count numbers are too long");
+					Gui::TextUnformatted("- Fix compared lanes wrongly used selected lane's beat and time position if their timing commands differ");
+					Gui::TextUnformatted("- Fix flying notes moved with on-going #JPOSSCROLLs again due to reworking of #JPOSSCROLL in v1.2");
+					Gui::TextUnformatted("- Fix undefined default Chart Stats tab docking position since v1.1.1");
+					Gui::TextUnformatted("- (for the full change list, please refer to the commit history)");
 					Gui::TextUnformatted("");
 					Gui::PopFont();
 					Gui::PopStyleColor();
@@ -609,25 +609,25 @@ namespace PeepoDrumKit
 					Gui::PopFont();
 
 					Gui::PushFont(FontMain, GuiScaleI32_AtTarget(FontBaseSizes::Small));
-					Gui::TextUnformatted(u8"- Fix notes' and bar lines' position in #HBSCROLL and #BMSCROLL (when past judgement or around #BPMCHANGEs)");
-					Gui::TextUnformatted(u8"- Fix #JPOSSCROLL distance (was 720px/lane instead of simulators' 948px/lane), direction 0 mode (failed to flip vertically)");
-					Gui::TextUnformatted(u8"- Fix could not set #JPOSSCROLL duration in Chart Inspector");
-					Gui::TextUnformatted(u8"- Improve compatibility and performance of chart importing and exporting");
-					Gui::TextUnformatted(u8"- Widen allowed BPM's and time signature's input and effective range (negative allowed)");
-					Gui::TextUnformatted(u8"- Add .ini localization; add zh-CN and zh-TW localizations");
-					Gui::TextUnformatted(u8"- Fix displayed position of balloons and flying notes with non-positive #SCROLL");
-					Gui::TextUnformatted(u8"- Add TaikoJiro2-like note display supporting complex-valued #SCROLL and stretching rolls with bar");
-					Gui::TextUnformatted(u8"- Add the possibility to edit notes' and long events' end position by dragging their end when selected");
-					Gui::TextUnformatted(u8"- #JPOSSCROLL is now visualized and editable as long event");
-					Gui::TextUnformatted(u8"- Widen playback speed range to 10%–200%");
-					Gui::TextUnformatted(u8"- Add Chart Stats tab");
-					Gui::TextUnformatted(u8"- Tweak difficulty number display and remove star view for decimal");
-					Gui::TextUnformatted(u8"- Add support of editing Tower charts and view Dan charts");
-					Gui::TextUnformatted(u8"- Add “Insert at Selected Items”, the successor of “Selection to Scroll Changes” which applies to all chart events");
-					Gui::TextUnformatted(u8"- Migrate to Dear ImGui 1.92.0-docking and solve missing font glyph issues");
-					Gui::TextUnformatted(u8"- Add “Select to End of Chart”");
-					Gui::TextUnformatted(u8"- Add advanced chart scale options, fix “missing notes after undo” problem when scaling");
-					Gui::TextUnformatted(u8"- (for the full change list, please refer to the commit history)");
+					Gui::TextUnformatted("- Fix notes' and bar lines' position in #HBSCROLL and #BMSCROLL (when past judgement or around #BPMCHANGEs)");
+					Gui::TextUnformatted("- Fix #JPOSSCROLL distance (was 720px/lane instead of simulators' 948px/lane), direction 0 mode (failed to flip vertically)");
+					Gui::TextUnformatted("- Fix could not set #JPOSSCROLL duration in Chart Inspector");
+					Gui::TextUnformatted("- Improve compatibility and performance of chart importing and exporting");
+					Gui::TextUnformatted("- Widen allowed BPM's and time signature's input and effective range (negative allowed)");
+					Gui::TextUnformatted("- Add .ini localization; add zh-CN and zh-TW localizations");
+					Gui::TextUnformatted("- Fix displayed position of balloons and flying notes with non-positive #SCROLL");
+					Gui::TextUnformatted("- Add TaikoJiro2-like note display supporting complex-valued #SCROLL and stretching rolls with bar");
+					Gui::TextUnformatted("- Add the possibility to edit notes' and long events' end position by dragging their end when selected");
+					Gui::TextUnformatted("- #JPOSSCROLL is now visualized and editable as long event");
+					Gui::TextUnformatted("- Widen playback speed range to 10%–200%");
+					Gui::TextUnformatted("- Add Chart Stats tab");
+					Gui::TextUnformatted("- Tweak difficulty number display and remove star view for decimal");
+					Gui::TextUnformatted("- Add support of editing Tower charts and view Dan charts");
+					Gui::TextUnformatted("- Add “Insert at Selected Items”, the successor of “Selection to Scroll Changes” which applies to all chart events");
+					Gui::TextUnformatted("- Migrate to Dear ImGui 1.92.0-docking and solve missing font glyph issues");
+					Gui::TextUnformatted("- Add “Select to End of Chart”");
+					Gui::TextUnformatted("- Add advanced chart scale options, fix “missing notes after undo” problem when scaling");
+					Gui::TextUnformatted("- (for the full change list, please refer to the commit history)");
 					Gui::TextUnformatted("");
 					Gui::PopFont();
 					Gui::PopStyleColor();
@@ -2740,14 +2740,14 @@ namespace PeepoDrumKit
 					if (f32 v = SuddenAppearanceOffsetAtCursor.ToSec_F32(); Gui::SpinFloat("##SuddenAppearanceOffsetAtCursor", &v, .1f, .5f, "%gs (show)"))
 						insertOrUpdateCursorSudden(Time::FromSec(v), SuddenMovementOffsetAtCursor, SuddenHideRollAtCursor);
 					Gui::SameLine(0, Gui::GetStyle().ItemInnerSpacing.x);
-					if (Gui::Button(u8"∞##SuddenAppearanceOffsetAtCursorInfinity", { Gui::GetFrameHeight(), Gui::GetFrameHeight() }))
+					if (Gui::Button("∞##SuddenAppearanceOffsetAtCursorInfinity", { Gui::GetFrameHeight(), Gui::GetFrameHeight() }))
 						insertOrUpdateCursorSudden(Time::FromSec(std::numeric_limits<f64>::infinity()), SuddenMovementOffsetAtCursor, SuddenHideRollAtCursor);
 
 					Gui::SetNextItemWidth(getInsertButtonWidth());
 					if (f32 v = SuddenMovementOffsetAtCursor.ToSec_F32(); Gui::SpinFloat("##SuddenMovementOffsetAtCursor", &v, .1f, .5f, "%gs (move)"))
 						insertOrUpdateCursorSudden(SuddenAppearanceOffsetAtCursor, Time::FromSec(v), SuddenHideRollAtCursor);
 					Gui::SameLine(0, Gui::GetStyle().ItemInnerSpacing.x);
-					if (Gui::Button(u8"∞##SuddenMovementOffsetAtCursorInfinity", { Gui::GetFrameHeight(), Gui::GetFrameHeight() }))
+					if (Gui::Button("∞##SuddenMovementOffsetAtCursorInfinity", { Gui::GetFrameHeight(), Gui::GetFrameHeight() }))
 						insertOrUpdateCursorSudden(SuddenAppearanceOffsetAtCursor, Time::FromSec(std::numeric_limits<f64>::infinity()), SuddenHideRollAtCursor);
 
 					if (b8 v = SuddenHideRollAtCursor; Gui::Checkbox(UI_Str("EVENT_SUDDEN_HIDE_ROLL"), &v))
