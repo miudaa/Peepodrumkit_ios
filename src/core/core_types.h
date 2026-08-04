@@ -669,8 +669,7 @@ constexpr T Lerp(T start, T end, F t) { return start * (1.0f - t) + (end * t); }
 template <typename T, typename F> // float, target
 constexpr T LerpClamped(T start, T end, F t) { return Lerp<T>(start, end, Clamp(t, 0.0f, 1.0f)); }
 
-template <typename T, typename S> // source, target
-constexpr T ConvertRange(S oldStart, S oldEnd, T newStart, T newEnd, S value) { return (newStart + ((value - oldStart) * (newEnd - newStart) / (oldEnd - oldStart))); }
+
 
 // NOTE: It's easy to accidentally misuse these in cases where (end < start) resulting in "incorrect" clamps
 template <typename T, typename S>
