@@ -49,7 +49,7 @@ struct Beat
 };
 
 constexpr Beat abs(Beat beat) { return Beat(abs(beat.Ticks)); }
-template <typename T, std::enable_if_t<!expect_type_v<T, Beat>, bool> = true>
+template <typename T, std::enable_if_t<std::is_arithmetic_v<std::remove_reference_t<T>>, bool> = true>
 constexpr auto operator*(T&& v, Beat beat) { return beat * v; }
 inline Beat FloorBeatToGrid(Beat beat, Beat grid) { return Beat::FromTicks(static_cast<i32>(Floor(static_cast<f64>(beat.Ticks) / static_cast<f64>(grid.Ticks))) * grid.Ticks); }
 inline Beat RoundBeatToGrid(Beat beat, Beat grid) { return Beat::FromTicks(static_cast<i32>(Round(static_cast<f64>(beat.Ticks) / static_cast<f64>(grid.Ticks))) * grid.Ticks); }
@@ -137,7 +137,7 @@ struct TimeSignature
 };
 
 constexpr i32 Sign(TimeSignature value) { return Sign(value.Numerator) * ((value.Denominator < 0) ? -1 : 1); }
-template <typename T, std::enable_if_t<!expect_type_v<T, TimeSignature>, bool> = true>
+template <typename T, std::enable_if_t<std::is_arithmetic_v<std::remove_reference_t<T>>, bool> = true>
 constexpr auto operator*(T&& v, TimeSignature signature) { return signature * v; }
 constexpr b8 IsTimeSignatureSupported(TimeSignature v) { return (v.Numerator != 0 && v.Denominator > 0) && (Beat::FromBars(1).Ticks % v.Denominator) == 0; }
 
