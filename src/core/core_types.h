@@ -453,11 +453,11 @@ struct Complex {
 		return oss.str();
 	}
 	// for TJA compatibility
-	std::string toStringCompat() const {
+	std::string toStringCompat(std::string_view separator = "") const {
 		std::ostringstream oss;
 		oss << std::noshowpos << this->GetRealPart();
 		if (this->GetImaginaryPart() != 0)
-			oss << std::showpos << this->GetImaginaryPart() << 'i';
+			oss << separator << std::showpos << this->GetImaginaryPart() << 'i';
 		return oss.str();
 	}
 
@@ -634,6 +634,34 @@ template <> constexpr vec2 Max<vec2>(vec2 a, vec2 b) { return { Max(a.x, b.x), M
 template <typename T> constexpr T Clamp(T value, T min, T max) { return Min<T>(Max<T>(value, min), max); }
 template <typename T> constexpr T ClampBot(T value, T min) { return Max<T>(value, min); }
 template <typename T> constexpr T ClampTop(T value, T max) { return Min<T>(value, max); }
+template <typename T> constexpr T RClamp(T value, T start, T end) { return (start <= end) ? Clamp(value, start, end) : Clamp(value, end, start); }
+template <typename T> constexpr T RClampStart(T value, T start, T end) { return (start <= end) ? ClampBot(value, start) : ClampTop(value, end); }
+template <typename T> constexpr T RClampEnd(T value, T start, T end) { return (start <= end) ? ClampTop(value, end) : ClampBot(value, start); }
+
+template <typename T, typename S> constexpr T ConvertRange(S oldStart, S oldEnd, T newStart, T newEnd, S value) { return (newStart + ((value - oldStart) * (newEnd - newStart) / (oldEnd - oldStart))); }
+template <typename T> constexpr b8 IntervalSameDirection(T aStart, T aEnd, T bStart, T bEnd) { return (aStart == aEnd) || (bStart == bEnd) || ((aStart <= aEnd) == (bStart <= bEnd)); }
+template <typename T>
+constexpr b8 IntervalIntersected(T aStart, T aEnd, T bStart, T bEnd)
+{
+	return IntervalSameDirection(aStart, aEnd, bStart, bEnd)
+		&& ((aStart <= aEnd) ? (aStart <= bEnd && aEnd >= bStart) : (aStart >= bEnd && aEnd <= bStart));
+}
+template <typename T, typename S>
+constexpr std::pair<T, T> ConvertRangeInterval(S oldStart, S oldEnd, T newStart, T newEnd, S vStart, S vEnd)
+{
+	if (oldStart == oldEnd) {
+		return IntervalIntersected(oldStart, oldEnd, vStart, vEnd) ? std::pair{ newStart, newEnd }
+		: std::pair{ newStart * std::nan(""), newEnd * std::nan("") }; // impossible to intersect
+	}
+	if (std::isinf(oldStart))
+		return std::pair{ (vStart == oldStart) ? newStart : newEnd, (vEnd == oldStart) ? newStart : newEnd };
+	if (std::isinf(oldEnd))
+		return std::pair{ (vStart == oldEnd) ? newEnd : newStart, (vEnd == oldEnd) ? newEnd : newStart };
+	return std::pair{
+		ConvertRange(oldStart, oldEnd, newStart, newEnd, vStart),
+		ConvertRange(oldStart, oldEnd, newStart, newEnd, vEnd),
+	};
+}
 
 template <typename T, typename F>
 constexpr T Lerp(T start, T end, F t) { return start * (1.0f - t) + (end * t); }
