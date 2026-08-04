@@ -2,7 +2,6 @@
 #include "chart_editor_undo.h"
 #include "chart_editor_theme.h"
 #include "chart_editor_i18n.h"
-#include <iterator>
 
 namespace PeepoDrumKit
 {
@@ -94,6 +93,7 @@ namespace PeepoDrumKit
 				{ "Timeline Scroll Change (Complex) Line", &TimelineScrollChangeComplexLineColor },
 				{ "Timeline Scroll Type Line", &TimelineScrollTypeLineColor },
 				{ "Timeline Bar Line Change Line", &TimelineBarLineChangeLineColor },
+				{ "Timeline Sudden Change Line", &TimelineSuddenChangeLineColor },
 				{ "Timeline Selected Item Line", &TimelineSelectedItemLineColor },
 				NamedColorU32Pointer {},
 				{ "Timeline Song Demo Start Marker Fill", &TimelineSongDemoStartMarkerColorFill },
@@ -273,7 +273,6 @@ namespace PeepoDrumKit
 		Time Time;
 		i32 BarIndex;
 		b8 IsBar;
-		Beat Beat;
 	};
 
 	template <typename Func>
@@ -311,7 +310,7 @@ namespace PeepoDrumKit
 			if ((gridLineIndex++ % gridLineModToSkip) == 0)
 			{
 				if (timeIt >= minMaxVisibleTime.Min && timeIt <= minMaxVisibleTime.Max)
-					perGridFunc(ForEachGridLineData { timeIt, it.BarIndex, it.IsBar, it.Beat });
+					perGridFunc(ForEachGridLineData { timeIt, it.BarIndex, it.IsBar });
 			}
 
 			if (timeIt >= minMaxVisibleTime.Max || (it.IsBar && timeIt >= chartDuration))
@@ -463,7 +462,7 @@ namespace PeepoDrumKit
 	{
 		char buffer[32]; const auto text = std::string_view(buffer, sprintf_s(buffer, "%d", popCount));
 		ImFont* const font = FontMain;
-		const f32 fontSize = ((f32)FontBaseSizes::Large * scale);
+		const f32 fontSize = (FontBaseSizes::Large * scale);
 		const vec2 textSize = font->CalcTextSizeA(fontSize, F32Max, -1.0f, Gui::StringViewStart(text), Gui::StringViewEnd(text));
 		const vec2 textPosition = (center - (textSize * 0.5f)) - vec2(0.0f, 1.0f);
 
@@ -757,6 +756,7 @@ namespace PeepoDrumKit
 			static constexpr f32 compactFormatStringZoomLevelThreshold = 0.25f;
 			const b8 useCompactFormat = (camera.ZoomTarget.x < compactFormatStringZoomLevelThreshold);
 			const f32 textHeight = Gui::GetFontSize();
+			const f32 lineHeight = textHeight * 0.67f; // compact height, might need to adjust for different fonts
 
 			for (const auto& it : list)
 			{
@@ -771,24 +771,36 @@ namespace PeepoDrumKit
 				const vec2 localSpaceTL = vec2(camera.TimeToLocalSpaceX(startTime), rowIt.LocalY);
 				const vec2 localSpaceBL = localSpaceTL + vec2(0.0f, rowIt.LocalHeight);
 				const vec2 localSpaceCenter = localSpaceTL + vec2(0.0f, rowIt.LocalHeight * 0.5f);
-				const vec2 textPosition = timeline.LocalToScreenSpace(localSpaceCenter + vec2(3.0f, textHeight * -0.5f));
+				const vec2 textPosition1 = timeline.LocalToScreenSpace(localSpaceCenter + vec2(3.0f, textHeight * -0.5f));
+				const vec2 textPosition2 = timeline.LocalToScreenSpace(localSpaceCenter + vec2(3.0f, (textHeight + lineHeight) * -0.5f));
 
 				Gui::DisableFontPixelSnap(true);
 				{
 					[[maybe_unused]] char b[32]; std::string_view text; u32 lineColor = TimelineDefaultLineColor; u32 textColor = TimelineItemTextColor;
 					if constexpr (std::is_same_v<T, TempoChange>) { text = std::string_view(b, sprintf_s(b, useCompactFormat ? "%.0f BPM" : "%g BPM", it.Tempo.BPM)); lineColor = TimelineTempoChangeLineColor; }
 					if constexpr (std::is_same_v<T, TimeSignatureChange>) { text = std::string_view(b, sprintf_s(b, "%d/%d", it.Signature.Numerator, it.Signature.Denominator)); lineColor = TimelineSignatureChangeLineColor; textColor = IsTimeSignatureSupported(it.Signature) ? TimelineItemTextColor : TimelineItemTextColorWarning; }
-					if constexpr (std::is_same_v<T, ScrollChange>) { text = std::string_view(b, sprintf_s(b, "%sx", it.ScrollSpeed.toString().c_str())); lineColor = it.ScrollSpeed.IsReal() ? TimelineScrollChangeLineColor : TimelineScrollChangeComplexLineColor; }
+					if constexpr (std::is_same_v<T, ScrollChange>) { text = std::string_view(b, sprintf_s(b, "%sx", it.ScrollSpeed.toStringCompat("x\n").c_str())); lineColor = it.ScrollSpeed.IsReal() ? TimelineScrollChangeLineColor : TimelineScrollChangeComplexLineColor; }
 					if constexpr (std::is_same_v<T, BarLineChange>) { text = it.IsVisible ? "On" : "Off"; lineColor = TimelineBarLineChangeLineColor; }
 					if constexpr (std::is_same_v<T, ScrollType>) { text = std::string_view(b, sprintf_s(b, "%s", it.Method_ToString().c_str())); lineColor = TimelineScrollTypeLineColor; }
-					if constexpr (std::is_same_v<T, JPOSScrollChange>) { text = std::string_view(b, sprintf_s(b, "%s", it.Move.toString().c_str())); }
+					if constexpr (std::is_same_v<T, JPOSScrollChange>) { text = std::string_view(b, sprintf_s(b, "%s", it.Move.toStringCompat("\n").c_str())); }
+					if constexpr (std::is_same_v<T, SuddenChange>) {
+						auto st = TJA::GetSuddenActiveState(it);
+						text = std::string_view(b, sprintf_s(b, st.HideRollActive ? "%gs\nHide rolls" : st.MoveActive ? "%gs\n%gs" : "%gs", it.AppearanceOffset.Seconds, it.MovementOffset.Seconds));
+						lineColor = st.MoveDelayVisible ? TimelineSuddenChangeDelayMoveLineColor : TimelineSuddenChangeLineColor;
+					}
 
-					const vec2 textSize = Gui::CalcTextSize(text);
+					const size_t idxNewline = text.find('\n');
+					const b8 is2Lines = (idxNewline != text.npos);
+					const auto text1 = is2Lines ? std::string_view(text).substr(0, idxNewline) : text;
+					const auto text2 = is2Lines ? std::string_view(text).substr(idxNewline + 1) : "";
+
+					const vec2 textSize = vec2(std::max(Gui::CalcTextSize(text1).x, Gui::CalcTextSize(text2).x), is2Lines ? textHeight + lineHeight : textHeight);
+					const vec2& textPosition = (idxNewline != text.npos) ? textPosition2 : textPosition1;
 
 					drawListContent->AddRectFilled(vec2(timeline.LocalToScreenSpace(localSpaceTL).x, textPosition.y), textPosition + textSize, TimelineBackgroundColor);
 					if constexpr (std::is_same_v<T, JPOSScrollChange>) {
 						// draw bar background; still need the simple text background if too narrow
-						static constexpr f32 margin = 1.0f;
+						static constexpr f32 margin = 0.0f;
 						const vec2 localTL = vec2(camera.TimeToLocalSpaceX(startTime), 0.0f) + vec2(0.0f, rowIt.LocalY + margin);
 						const vec2 localBR = vec2(camera.TimeToLocalSpaceX(endTime), 0.0f) + vec2(0.0f, rowIt.LocalY + rowIt.LocalHeight - (margin * 2.0f));
 						DrawTimelineJPOSScrollBackground(drawListContent, timeline.LocalToScreenSpace(localTL) + vec2(0.0f, 2.0f), timeline.LocalToScreenSpace(localBR), it.IsSelected);
@@ -796,7 +808,9 @@ namespace PeepoDrumKit
 					else {
 						drawListContent->AddLine(timeline.LocalToScreenSpace(localSpaceTL + vec2(0.0f, 1.0f)), timeline.LocalToScreenSpace(localSpaceBL), it.IsSelected ? TimelineSelectedItemLineColor : lineColor);
 					}
-					Gui::AddTextWithDropShadow(drawListContent, textPosition, textColor, text, TimelineItemTextColorShadow);
+					Gui::AddTextWithDropShadow(drawListContent, textPosition, textColor, text1, TimelineItemTextColorShadow);
+					if (is2Lines)
+						Gui::AddTextWithDropShadow(drawListContent, textPosition + vec2(0, lineHeight), textColor, text2, TimelineItemTextColorShadow);
 
 					if (it.IsSelected)
 					{
@@ -922,8 +936,10 @@ namespace PeepoDrumKit
 				{
 					if (IsBalloonNote(note.Type))
 					{
+						const Time timeHead = course->TempoMap.BeatToTime(note.BeatTime);
+						const Time timeEnd = course->TempoMap.BeatToTime(note.GetEnd());
 						for (i32 iPop = 0; iPop < note.BalloonPopCount; ++iPop)
-							checkAndPlayNoteSound(course->TempoMap.BeatToTime(ConvertRange(0, i32{ note.BalloonPopCount }, note.BeatTime, note.GetEnd(), iPop)) + note.TimeOffset, note.Type, pan);
+							checkAndPlayNoteSound(ConvertRange(0, i32{ note.BalloonPopCount }, timeHead, timeEnd, iPop) + note.TimeOffset, note.Type, pan);
 					}
 					else
 					{
@@ -1266,6 +1282,11 @@ namespace PeepoDrumKit
 					const auto& in = item.Value.POD.JPOSScroll;
 					bufferLength = sprintf_s(buffer, "JPOSScroll { %d, %s, %g };\n", (in.BeatTime - baseBeat).Ticks, in.Move.toString().c_str(), in.Duration);
 				} break;
+				case GenericList::Sudden:
+				{
+					const auto& in = item.Value.POD.Sudden;
+					bufferLength = sprintf_s(buffer, "Sudden { %d, %g, %g, %hhu };\n", (in.BeatTime - baseBeat).Ticks, in.AppearanceOffset.Seconds, in.MovementOffset.Seconds, in.HideRoll);
+				} break;
 				default: { assert(false); } break;
 				}
 
@@ -1400,6 +1421,16 @@ namespace PeepoDrumKit
 						newItemValue.Move = parsedParams[1].CPX;
 						newItemValue.Duration = parsedParams[2].F32;
 					}
+					else if (itemType == "Sudden")
+					{
+						auto& newItem = out.emplace_back(); newItem.List = GenericList::Sudden;
+						auto& newItemValue = newItem.Value.POD.Sudden;
+						newItemValue = SuddenChange{};
+						newItemValue.BeatTime.Ticks = parsedParams[0].I32;
+						newItemValue.AppearanceOffset = Time::FromSec(parsedParams[1].F32);
+						newItemValue.MovementOffset = Time::FromSec(parsedParams[2].F32);
+						newItemValue.HideRoll = parsedParams[3].I32;
+					}
 #if PEEPO_DEBUG
 					else { assert(false); }
 #endif
@@ -1486,6 +1517,7 @@ namespace PeepoDrumKit
 					case GenericList::Lyrics: return check(course.Lyrics, item.Value.NonTrivial.Lyric);
 					case GenericList::ScrollType: return check(course.ScrollTypes, item.Value.POD.ScrollType);
 					case GenericList::JPOSScroll: return check(course.JPOSScrollChanges, item.Value.POD.JPOSScroll);
+					case GenericList::Sudden: return check(course.SuddenChanges, item.Value.POD.Sudden);
 					default: assert(false); return false;
 					}
 				};
@@ -1632,7 +1664,7 @@ namespace PeepoDrumKit
 	}
 
 	template <typename Arr0, typename Arr1>
-	static b8 ScaleChartItemValues(GenericListStructWithType& item, const Arr0& ratio, const Arr1& ratioBeat, b8 byTempo, b8 keepTimePos, b8 keepTimeSignature)
+	static b8 ScaleChartItemValues(GenericListStructWithType& item, const Arr0& ratio, const Arr1& ratioBeat, b8 byTempo, b8 keepTimePos, b8 keepEventValue)
 	{
 		static_assert(std::size(decltype(ratio){}) == 2 && std::size(decltype(ratioBeat){}) == 2);
 
@@ -1640,6 +1672,16 @@ namespace PeepoDrumKit
 			return false; // no change
 
 		b8 changed = false;
+		if (Time v; !keepTimePos && TryGet<GenericMember::Time_Offset>(item, v) && v != Time::Zero()) {
+			TrySet<GenericMember::Time_Offset>(item, v * ratio[0] / ratio[1]);
+			changed = true;
+		}
+		for (auto member : { GenericMember::Time_AppearanceOffset, GenericMember::Time_MovementOffset }) {
+			if (Time v; !keepEventValue && TryGet(item, member, v) && v != Time::Zero()) {
+				TrySet(item, member, v * ratio[0] / ratio[1]);
+				changed = true;
+			}
+		}
 		if (Tempo v; TryGet<GenericMember::Tempo_V>(item, v)) {
 			changed = true;
 			if (byTempo) // scale beat interval (60/BPM)
@@ -1650,7 +1692,7 @@ namespace PeepoDrumKit
 				changed = false;
 			TrySet<GenericMember::Tempo_V>(item, v);
 		}
-		if (TimeSignature v; !keepTimeSignature && TryGet<GenericMember::TimeSignature_V>(item, v)) {
+		if (TimeSignature v; !keepEventValue && TryGet<GenericMember::TimeSignature_V>(item, v)) {
 			if (std::abs(ratioBeat[0]) != std::abs(ratioBeat[1])) {
 				const auto denomOrig = v.Denominator;
 				v.Numerator *= std::abs(ratioBeat[0]);
@@ -1994,7 +2036,7 @@ namespace PeepoDrumKit
 						}
 					}
 				}
-				ScaleChartItemValues(itemToAdd, param.TimeRatio, ratioBeat, byTempo, keepTimePos, *Settings.General.TransformScale_KeepTimeSignature);
+				ScaleChartItemValues(itemToAdd, param.TimeRatio, ratioBeat, byTempo, keepTimePos, *Settings.General.TransformScale_KeepEventValue);
 				if (!(reverseBeat && !ListIsItemEndBounded(it.List)) && nowBeat < minBeatAfter) // handle overlapping items with varying lengths from different row
 					minBeatAfter = nowBeat;
 
@@ -2032,7 +2074,7 @@ namespace PeepoDrumKit
 				return;
 
 			auto [byTempo, keepTimePos, keepItemDur, ratioBeat, ratioBeatAbs, reverseBeat] = GetScaleChartItemRatios(param);
-			const b8 keepTimeSig = *Settings.General.TransformScale_KeepTimeSignature;
+			const b8 keepEventValue = *Settings.General.TransformScale_KeepEventValue;
 			enum RangeSide : u8 { Past, Present, Future, Count };
 			static constexpr auto scale = [](const auto& now, const auto& first, const auto& ratio) { return (((now - first) / ratio[1]) * ratio[0]) + first; };
 
@@ -2112,7 +2154,7 @@ namespace PeepoDrumKit
 							Beat beatMinPrs = std::min(beatHeadPrs, beatEndPrs), beatMaxPrs = std::max(beatHeadPrs, beatEndPrs); // handle reversing
 							// merge if the original item was single note or the resulting items have the same value
 							splitItems.push_back(item);
-							b8 changedIn = ScaleChartItemValues(splitItems.back(), param.TimeRatio, ratioBeat, byTempo, keepTimePos, keepTimeSig);
+							b8 changedIn = ScaleChartItemValues(splitItems.back(), param.TimeRatio, ratioBeat, byTempo, keepTimePos, keepEventValue);
 							if (!changedIn) {
 								if (hasPast && beatMaxPst == beatMinPrs) {
 									beatMinPrs = beatMinPst;
@@ -2149,7 +2191,7 @@ namespace PeepoDrumKit
 					if (origBeatDuration > Beat::Zero()) {
 						if (!keepItemDur || !ListIsItemEndBounded(it.List)) {
 							auto fragments = RefragmentChartItem(itemToRemove, origBeatDuration,
-								std::array{ firstBeat, latestBeat }, param.TimeRatio, ratioBeat, reverseBeat, byTempo, keepTimePos, keepTimeSig,
+								std::array{ firstBeat, latestBeat }, param.TimeRatio, ratioBeat, reverseBeat, byTempo, keepTimePos, keepEventValue,
 								[&](const GenericListStructWithType& itemI, Beat& beatDurationI, b8 needSplit, auto&& fragments)
 								{
 									return splitAndScale(itemI, GetBeat(itemI), beatDurationI, needSplit, fragments, [&](Beat head, Beat end, b8 reverse, RangeSide maxSideItem, RangeSide maxSideSet, GenericListStructWithType& item)
@@ -2183,7 +2225,7 @@ namespace PeepoDrumKit
 						itemToAdd.push_back(itemToRemove);
 						SetBeat(nowBeat, itemToAdd.back());
 						changed |= (nowBeat != origBeat);
-						changed |= ScaleChartItemValues(itemToAdd[0], param.TimeRatio, ratioBeat, byTempo, keepTimePos, keepTimeSig);
+						changed |= ScaleChartItemValues(itemToAdd[0], param.TimeRatio, ratioBeat, byTempo, keepTimePos, keepEventValue);
 					}
 				}
 
@@ -2243,58 +2285,39 @@ namespace PeepoDrumKit
 	{
 		MousePosLastFrame = MousePosThisFrame;
 		MousePosThisFrame = Gui::GetMousePos();
-		
-		auto &io = Gui::GetIO();
 
 		// NOTE: Mouse scroll / zoom
-#ifdef SDL_PLATFORM_MACOS
-		if (!ApproxmiatelySame(io.MouseWheelH, 0.0f))
+		if (!ApproxmiatelySame(Gui::GetIO().MouseWheel, 0.0f))
 		{
-			vec2 scrollStep = vec2(io.KeyShift ? *Settings.General.TimelineScrollDistancePerMouseWheelTickFast : *Settings.General.TimelineScrollDistancePerMouseWheelTick);
+			vec2 scrollStep = vec2(Gui::GetIO().KeyShift ? *Settings.General.TimelineScrollDistancePerMouseWheelTickFast : *Settings.General.TimelineScrollDistancePerMouseWheelTick);
 			scrollStep.y *= 0.75f;
 			if (*Settings.General.TimelineScrollInvertMouseWheel)
 				scrollStep.x *= -1.0f;
 
-			if (IsContentHeaderWindowHovered || IsContentWindowHovered)
+			if (IsSidebarWindowHovered)
 			{
-				if (io.KeyCtrl)
-					Camera.PositionTarget.y -= (io.MouseWheelH * scrollStep.y);
-				else
-					Camera.PositionTarget.x -= (io.MouseWheelH * scrollStep.x);
+#if 0 // NOTE: Not needed at the moment for small number of rows
+				if (!Gui::GetIO().KeyAlt)
+					Camera.PositionTarget.y -= (Gui::GetIO().MouseWheel * scrollStep.y);
+#endif
 			}
-		}
-		else if (!ApproxmiatelySame(io.MouseWheel, 0.0f) && io.KeyAlt)
-		{
-			const f32 zoomFactorX = *Settings.General.TimelineZoomFactorPerMouseWheelTick;
-			const f32 newZoomX = (io.MouseWheel > 0.0f) ? (Camera.ZoomTarget.x * zoomFactorX) : (Camera.ZoomTarget.x / zoomFactorX);
-			Camera.SetZoomTargetAroundLocalPivot(vec2(newZoomX, Camera.ZoomTarget.y), ScreenToLocalSpace(Gui::GetMousePos()));
-		}
-#else
-		if (!ApproxmiatelySame(io.MouseWheel, 0.0f))
-		{
-			vec2 scrollStep = vec2(io.KeyShift ? *Settings.General.TimelineScrollDistancePerMouseWheelTickFast : *Settings.General.TimelineScrollDistancePerMouseWheelTick);
-			scrollStep.y *= 0.75f;
-			if (*Settings.General.TimelineScrollInvertMouseWheel)
-				scrollStep.x *= -1.0f;
-
-			if (IsContentHeaderWindowHovered || IsContentWindowHovered)
+			else if (IsContentHeaderWindowHovered || IsContentWindowHovered)
 			{
-				if (io.KeyAlt)
+				if (Gui::GetIO().KeyAlt)
 				{
 					const f32 zoomFactorX = *Settings.General.TimelineZoomFactorPerMouseWheelTick;
-					const f32 newZoomX = (io.MouseWheel > 0.0f) ? (Camera.ZoomTarget.x * zoomFactorX) : (Camera.ZoomTarget.x / zoomFactorX);
+					const f32 newZoomX = (Gui::GetIO().MouseWheel > 0.0f) ? (Camera.ZoomTarget.x * zoomFactorX) : (Camera.ZoomTarget.x / zoomFactorX);
 					Camera.SetZoomTargetAroundLocalPivot(vec2(newZoomX, Camera.ZoomTarget.y), ScreenToLocalSpace(Gui::GetMousePos()));
 				}
 				else
 				{
-					if (io.KeyCtrl)
-						Camera.PositionTarget.y -= (io.MouseWheel * scrollStep.y);
+					if (Gui::GetIO().KeyCtrl)
+						Camera.PositionTarget.y -= (Gui::GetIO().MouseWheel * scrollStep.y);
 					else
-						Camera.PositionTarget.x += (io.MouseWheel * scrollStep.x);
+						Camera.PositionTarget.x += (Gui::GetIO().MouseWheel * scrollStep.x);
 				}
 			}
 		}
-#endif
 
 		// NOTE: Mouse wheel grab scroll
 		{
@@ -3188,7 +3211,7 @@ namespace PeepoDrumKit
 	void ChartTimeline::DrawAllAtEndOfFrame(ChartContext& context)
 	{
 		if (!context.Gfx.IsAsyncLoading())
-			context.Gfx.Rasterize(SprGroup::Timeline, GuiScaleFactorTarget * ImGui::GetIO().DisplayFramebufferScale.x);
+			context.Gfx.Rasterize(SprGroup::Timeline, GuiScaleFactorTarget);
 
 		const b8 isPlayback = context.GetIsPlayback();
 		const BeatAndTime cursorBeatAndTime = context.GetCursorBeatAndTime();
@@ -3237,33 +3260,6 @@ namespace PeepoDrumKit
 			}
 		}
 
-		// NOTE: Bar Line Drag Logic
-		if (BarLineDrag.IsActive)
-		{
-			if (!Gui::IsMouseDown(ImGuiMouseButton_Left))
-			{
-				BarLineDrag.IsActive = false;
-			}
-			else if (auto* bpmEvent = context.ChartSelectedCourse->TempoMap.Tempo.TryFindExactAtBeat(BarLineDrag.TempoEventBeat))
-			{
-				const Time targetTime = Camera.LocalSpaceXToTime(ScreenToLocalSpace(Gui::GetMousePos()).x);
-				const Time bpmStartTime = context.ChartSelectedCourse->TempoMap.BeatToTime(bpmEvent->Beat);
-				const Time timeDelta = targetTime - bpmStartTime;
-				const Beat beatDelta = BarLineDrag.BarBeat - bpmEvent->Beat;
-
-				if (timeDelta.Seconds > 0.001 && beatDelta > Beat::Zero())
-				{
-					const f64 beats = beatDelta.BeatsFraction();
-					const f32 newBPM = static_cast<f32>(beats * 60.0 / timeDelta.Seconds);
-					if (newBPM > 0.0f)
-					{
-						bpmEvent->Tempo.BPM = Clamp(newBPM, 0.001f, 100000.0f);
-						context.ChartSelectedCourse->TempoMap.RebuildAccelerationStructure();
-					}
-				}
-			}
-		}
-
 		// NOTE: Tempo map bar/beat lines and bar-index/time text
 		{
 			const f32 screenSpaceTimeTextWidth = Gui::CalcTextSize(Time::Zero().ToString().Data).x;
@@ -3293,37 +3289,6 @@ namespace PeepoDrumKit
 					// TODO: Fix overlapping text when zoomed out really far (while still keeping the grid lines)
 					if (gridIt.IsBar)
 					{
-						b8 isHoveredForDrag = false;
-						if (!BarLineDrag.IsActive && SelectedItemDrag.ActiveTarget == EDragTarget::None && !IsCameraMouseGrabActive && IsContentWindowHovered)
-						{
-							if (Gui::GetIO().KeyCtrl)
-							{
-								const f32 dist = Absolute(Gui::GetMousePos().x - screenSpaceTL.x);
-								if (dist < GuiScale(6.0f))
-								{
-									isHoveredForDrag = true;
-									Gui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
-									if (Gui::IsMouseClicked(ImGuiMouseButton_Left))
-									{
-										Beat searchBeat = gridIt.Beat - Beat::FromTicks(1);
-										if (auto* bpmEvent = context.ChartSelectedCourse->TempoMap.Tempo.TryFindLastAtBeat(searchBeat))
-										{
-											BarLineDrag.IsActive = true;
-											BarLineDrag.BarBeat = gridIt.Beat;
-											BarLineDrag.TempoEventBeat = bpmEvent->Beat;
-										}
-									}
-								}
-							}
-						}
-
-						if (isHoveredForDrag || (BarLineDrag.IsActive && BarLineDrag.BarBeat == gridIt.Beat))
-						{
-							static constexpr f32 highlightThickness = 3.0f;
-							DrawListContent->AddLine(screenSpaceTL, screenSpaceTL + vec2(0.0f, Regions.Content.GetHeight()), TimelineSelectedItemLineColor, highlightThickness);
-							DrawListContentHeader->AddLine(headerScreenSpaceTL, headerScreenSpaceTL + vec2(0.0f, Regions.ContentHeader.GetHeight()), TimelineSelectedItemLineColor, highlightThickness);
-						}
-
 						Gui::DisableFontPixelSnap(true);
 
 						char buffer[32];
@@ -3459,6 +3424,7 @@ namespace PeepoDrumKit
 				case TimelineRowType::Lyrics: DrawTimelineContentItemRowT<LyricChange, TimelineRowType::Lyrics>(rowParam, rowIt, context.ChartSelectedCourse->Lyrics); break;
 				case TimelineRowType::ScrollType: DrawTimelineContentItemRowT<ScrollType, TimelineRowType::ScrollType>(rowParam, rowIt, context.ChartSelectedCourse->ScrollTypes); break;
 				case TimelineRowType::JPOSScroll: DrawTimelineContentItemRowT<JPOSScrollChange, TimelineRowType::JPOSScroll>(rowParam, rowIt, context.ChartSelectedCourse->JPOSScrollChanges); break;
+				case TimelineRowType::Sudden: DrawTimelineContentItemRowT<SuddenChange, TimelineRowType::Sudden>(rowParam, rowIt, context.ChartSelectedCourse->SuddenChanges); break;
 				default: { assert(!"Missing TimelineRowType switch case"); } break;
 				}
 			});

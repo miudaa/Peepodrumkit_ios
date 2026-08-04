@@ -182,8 +182,9 @@ namespace PeepoDrumKit
 
 	enum class DifficultyLevel : u8
 	{
-		Min = 1,
-		Max = 20
+		Min = 0,
+		MaxSoft = 15,
+		Max = U8Max,
 	};
 
 	enum class DifficultyLevelDecimal : i8
@@ -197,7 +198,7 @@ namespace PeepoDrumKit
 	enum class TowerLives : i32
 	{
 		Min = 0,
-		Max = 99999
+		Max = I32Max
 	};
 
 	enum class BranchType : u8
@@ -219,16 +220,16 @@ namespace PeepoDrumKit
 	constexpr std::string_view PluralSuffixDefault = "s"; // unfortunately cannot just pass the string literal for now
 
 	template <typename TEvent>
-	inline constexpr std::string_view DisplayNameOfChartEvent = std::declval<TEvent>(); // Forbid usage unless specialized
+	constexpr std::string_view DisplayNameOfChartEvent = std::declval<std::string_view>(); // Forbid usage unless specialized
 	template <typename TEvent>
-	inline constexpr std::string_view DisplayNameOfLongChartEvent = DisplayNameOfChartEvent<TEvent>;
+	constexpr std::string_view DisplayNameOfLongChartEvent = DisplayNameOfChartEvent<TEvent>;
 	template <typename TEvent>
-	inline constexpr std::string_view DisplayNameOfChartEvents = ConstevalStrJoined<DisplayNameOfChartEvent<TEvent>, PluralSuffixDefault>;
+	constexpr std::string_view DisplayNameOfChartEvents = ConstevalStrJoined<DisplayNameOfChartEvent<TEvent>, PluralSuffixDefault>;
 	template <typename TEvent>
-	inline constexpr std::string_view DisplayNameOfLongChartEvents = DisplayNameOfChartEvents<TEvent>;
+	constexpr std::string_view DisplayNameOfLongChartEvents = DisplayNameOfChartEvents<TEvent>;
 
-	template <> inline constexpr std::string_view DisplayNameOfChartEvent<TempoChange> = "Tempo Change";
-	template <> inline constexpr std::string_view DisplayNameOfChartEvent<TimeSignatureChange> = "Time Signature Change";
+	template <> constexpr std::string_view DisplayNameOfChartEvent<TempoChange> = "Tempo Change";
+	template <> constexpr std::string_view DisplayNameOfChartEvent<TimeSignatureChange> = "Time Signature Change";
 
 	// TODO: Animations for create / delete AND for moving left / right (?)
 	struct Note
@@ -247,18 +248,18 @@ namespace PeepoDrumKit
 		constexpr Beat GetStart() const { return BeatTime; }
 		constexpr Beat GetEnd() const { return BeatTime + BeatDuration; }
 	};
-	template <> inline constexpr std::string_view DisplayNameOfChartEvent<Note> = "Note";
-	template <> inline constexpr std::string_view DisplayNameOfLongChartEvent<Note> = "Long Note";
+	template <> constexpr std::string_view DisplayNameOfChartEvent<Note> = "Note";
+	template <> constexpr std::string_view DisplayNameOfLongChartEvent<Note> = "Long Note";
 
 	static_assert(sizeof(Note) == 32, "Accidentally introduced padding to Note struct (?)");
 
 	template <typename TEvent>
-	inline TEvent FallbackEvent = std::declval<TEvent>(); // Forbid usage unless specialized
+	TEvent FallbackEvent = std::declval<TEvent>(); // Forbid usage unless specialized
 
 	template <>
-	inline constexpr TempoChange FallbackEvent<TempoChange> = {Beat::Zero(), FallbackTempo};
+	constexpr TempoChange FallbackEvent<TempoChange> = {Beat::Zero(), FallbackTempo};
 	template <>
-	inline constexpr TimeSignatureChange FallbackEvent<TimeSignatureChange> = {Beat::Zero(), FallbackTimeSignature};
+	constexpr TimeSignatureChange FallbackEvent<TimeSignatureChange> = {Beat::Zero(), FallbackTimeSignature};
 
 	struct ScrollChange
 	{
@@ -266,10 +267,10 @@ namespace PeepoDrumKit
 		Complex ScrollSpeed;
 		b8 IsSelected;
 	};
-	template <> inline constexpr std::string_view DisplayNameOfChartEvent<ScrollChange> = "Scroll Changes";
+	template <> constexpr std::string_view DisplayNameOfChartEvent<ScrollChange> = "Scroll Changes";
 
 	template <>
-	inline constexpr ScrollChange FallbackEvent<ScrollChange> = {Beat::Zero(), Complex(1.0f, 0.0f)};
+	constexpr ScrollChange FallbackEvent<ScrollChange> = {Beat::Zero(), Complex(1.0f, 0.0f)};
 
 	struct ScrollType
 	{
@@ -290,10 +291,23 @@ namespace PeepoDrumKit
 			}
 		}
 	};
-	template <> inline constexpr std::string_view DisplayNameOfChartEvent<ScrollType> = "Scroll Type";
+	template <> constexpr std::string_view DisplayNameOfChartEvent<ScrollType> = "Scroll Type";
 
 	template <>
-	inline constexpr ScrollType FallbackEvent<ScrollType> = {Beat::Zero(), ScrollMethod::NMSCROLL};
+	constexpr ScrollType FallbackEvent<ScrollType> = {Beat::Zero(), ScrollMethod::NMSCROLL};
+
+	struct SuddenChange
+	{
+		Beat BeatTime;
+		Time AppearanceOffset;
+		Time MovementOffset;
+		b8 HideRoll;
+		b8 IsSelected;
+	};
+	template <> constexpr std::string_view DisplayNameOfChartEvent<SuddenChange> = "Sudden";
+
+	template <>
+	constexpr SuddenChange FallbackEvent<SuddenChange> = { Beat::Zero(), Time::FromSec(std::numeric_limits<f64>::infinity()), Time::FromSec(std::numeric_limits<f64>::infinity()), false };
 
 	struct JPOSScrollChange
 	{
@@ -302,10 +316,10 @@ namespace PeepoDrumKit
 		f32 Duration;
 		b8 IsSelected;
 	};
-	template <> inline constexpr std::string_view DisplayNameOfChartEvent<JPOSScrollChange> = "JPOSScroll";
+	template <> constexpr std::string_view DisplayNameOfChartEvent<JPOSScrollChange> = "JPOSScroll";
 
 	template <>
-	inline constexpr JPOSScrollChange FallbackEvent<JPOSScrollChange> = {Beat::Zero(), Complex(100.0f, 0.0f), 0.f};
+	constexpr JPOSScrollChange FallbackEvent<JPOSScrollChange> = {Beat::Zero(), Complex(100.0f, 0.0f), 0.f};
 
 	struct BarLineChange
 	{
@@ -313,10 +327,10 @@ namespace PeepoDrumKit
 		b8 IsVisible;
 		b8 IsSelected;
 	};
-	template <> inline constexpr std::string_view DisplayNameOfChartEvent<BarLineChange> = "Bar Line Change";
+	template <> constexpr std::string_view DisplayNameOfChartEvent<BarLineChange> = "Bar Line Change";
 
 	template <>
-	inline constexpr BarLineChange FallbackEvent<BarLineChange> = {Beat::Zero(), true};
+	constexpr BarLineChange FallbackEvent<BarLineChange> = {Beat::Zero(), true};
 
 	struct GoGoRange
 	{
@@ -329,10 +343,10 @@ namespace PeepoDrumKit
 		constexpr Beat GetStart() const { return BeatTime; }
 		constexpr Beat GetEnd() const { return BeatTime + BeatDuration; }
 	};
-	template <> inline constexpr std::string_view DisplayNameOfChartEvent<GoGoRange> = "Go-Go Range";
+	template <> constexpr std::string_view DisplayNameOfChartEvent<GoGoRange> = "Go-Go Range";
 
 	template <>
-	inline constexpr GoGoRange FallbackEvent<GoGoRange> = {};
+	constexpr GoGoRange FallbackEvent<GoGoRange> = {};
 
 	struct LyricChange
 	{
@@ -340,7 +354,7 @@ namespace PeepoDrumKit
 		std::string Lyric;
 		b8 IsSelected;
 	};
-	template <> inline constexpr std::string_view DisplayNameOfChartEvent<LyricChange> = "Lyric Change";
+	template <> constexpr std::string_view DisplayNameOfChartEvent<LyricChange> = "Lyric Change";
 
 	template <>
 	inline LyricChange FallbackEvent<LyricChange> = {};
@@ -350,6 +364,7 @@ namespace PeepoDrumKit
 	using SortedBarLineChangesList = BeatSortedList<BarLineChange>;
 	using SortedGoGoRangesList = BeatSortedList<GoGoRange>;
 	using SortedLyricsList = BeatSortedList<LyricChange>;
+	using SortedSuddenChangesList = BeatSortedList<SuddenChange>;
 	using SortedJPOSScrollChangesList = BeatSortedList<JPOSScrollChange>;
 	using SortedScrollTypesList = BeatSortedList<ScrollType>;
 
@@ -360,6 +375,11 @@ namespace PeepoDrumKit
 	constexpr ScrollMethod ScrollTypeOrDefault(const ScrollType* v) { return (v == nullptr) ? ScrollMethod::NMSCROLL : v->Method; }
 	constexpr Complex ScrollOrDefault(const ScrollChange* v) { return (v == nullptr) ? Complex(1.0f, 0.0f) : v->ScrollSpeed; }
 	constexpr Tempo TempoOrDefault(const TempoChange* v) { return (v == nullptr) ? FallbackTempo : v->Tempo; }
+	constexpr TJA::SuddenParams SuddenOrDefault(const SuddenChange* v)
+	{
+		return (v == nullptr) ? SuddenOrDefault(&FallbackEvent<SuddenChange>)
+			: TJA::SuddenParams{ v->AppearanceOffset, v->MovementOffset, v->HideRoll };
+	}
 
 	struct ChartCourse
 	{
@@ -384,6 +404,7 @@ namespace PeepoDrumKit
 		SortedLyricsList Lyrics;
 
 		SortedScrollTypesList ScrollTypes;
+		SortedSuddenChangesList SuddenChanges;
 		SortedJPOSScrollChangesList JPOSScrollChanges;
 
 		i32 ScoreInit = 0;
@@ -440,25 +461,25 @@ namespace PeepoDrumKit
 	};
 
 	template <auto ChartProject::* Attr>
-	inline constexpr std::string_view DisplayNameOfChartProjectAttr = "";
+	extern constexpr std::string_view DisplayNameOfChartProjectAttr; // defined later
 
-	template <> inline constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartDuration> = "Chart Duration";
-	template <> inline constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartTitle> = "Chart Title";
-	template <> inline constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartTitleLocalized> = "Chart Title Localized";
-	template <> inline constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartSubtitle> = "Chart Subtitle";
-	template <> inline constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartSubtitleLocalized> = "Chart Subtitle Localized";
-	template <> inline constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartCreator> = "Chart Creator";
-	template <> inline constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartGenre> = "Chart Genre";
-	template <> inline constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartLyricsFileName> = "Chart Lyrics File";
-	template <> inline constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::SongOffset> = "Song Offset";
-	template <> inline constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::SongDemoStartTime> = "Song Demo Start";
-	template <> inline constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::SongFileName> = "Song File";
-	template <> inline constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::SongJacket> = "Song Jacket";
-	template <> inline constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::SongVolume> = "Song Volume";
-	template <> inline constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::SoundEffectVolume> = "Sound Effect Volume";
-	template <> inline constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::BackgroundImageFileName> = "Background Image";
-	template <> inline constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::BackgroundMovieFileName> = "Background Movie";
-	template <> inline constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::MovieOffset> = "Movie Offset";
+	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartDuration> = "Chart Duration";
+	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartTitle> = "Chart Title";
+	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartTitleLocalized> = "Chart Title Localized";
+	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartSubtitle> = "Chart Subtitle";
+	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartSubtitleLocalized> = "Chart Subtitle Localized";
+	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartCreator> = "Chart Creator";
+	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartGenre> = "Chart Genre";
+	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartLyricsFileName> = "Chart Lyrics File";
+	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::SongOffset> = "Song Offset";
+	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::SongDemoStartTime> = "Song Demo Start";
+	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::SongFileName> = "Song File";
+	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::SongJacket> = "Song Jacket";
+	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::SongVolume> = "Song Volume";
+	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::SoundEffectVolume> = "Sound Effect Volume";
+	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::BackgroundImageFileName> = "Background Image";
+	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::BackgroundMovieFileName> = "Background Movie";
+	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::MovieOffset> = "Movie Offset";
 
 	// NOTE: Chart Space -> Starting at 00:00.000 (as most internal calculations are done in)
 	//		  Song Space -> Starting relative to Song Offset (sometimes useful for displaying to the user)
@@ -491,6 +512,7 @@ namespace PeepoDrumKit
 		Lyrics,
 		ScrollType,
 		JPOSScroll,
+		Sudden,
 		Count
 	};
 
@@ -510,6 +532,9 @@ namespace PeepoDrumKit
 		I8_ScrollType,
 		F32_JPOSScroll,
 		F32_JPOSScrollDuration,
+		Time_AppearanceOffset,
+		Time_MovementOffset,
+		B8_SuddenHideRoll,
 		Count
 	};
 
@@ -532,20 +557,29 @@ namespace PeepoDrumKit
 		GenericMemberFlags_ScrollType = EnumToFlag(GenericMember::I8_ScrollType),
 		GenericMemberFlags_JPOSScroll = EnumToFlag(GenericMember::F32_JPOSScroll),
 		GenericMemberFlags_JPOSScrollDuration = EnumToFlag(GenericMember::F32_JPOSScrollDuration),
-		GenericMemberFlags_All = 0b11111111111111,
+		GenericMemberFlags_AppearanceOffset = EnumToFlag(GenericMember::Time_AppearanceOffset),
+		GenericMemberFlags_MovementOffset = EnumToFlag(GenericMember::Time_MovementOffset),
+		GenericMemberFlags_SuddenHideRoll = EnumToFlag(GenericMember::B8_SuddenHideRoll),
+		GenericMemberFlags_All = 0b11111111111111111,
 	};
 
 	static_assert(GenericMemberFlags_All & (1u << (static_cast<u32>(GenericMember::Count) - 1)));
 	static_assert(!(GenericMemberFlags_All & (1u << static_cast<u32>(GenericMember::Count))));
 
-	constexpr cstr GenericListNames[] = { "TempoChanges", "SignatureChanges", "Notes_Normal", "Notes_Expert", "Notes_Master", "ScrollChanges", "BarLineChanges", "GoGoRanges", "Lyrics", "ScrollType", "JPOSScroll", };
-	constexpr cstr GenericMemberNames[] = { "IsSelected", "BarLineVisible", "BalloonPopCount", "ScrollSpeed", "Start", "Duration", "Offset", "NoteType", "Tempo", "TimeSignature", "Lyric", "ScrollType", "JPOSScroll", "JPOSScrollDuration", };
+	constexpr cstr GenericListNames[] = { "TempoChanges", "SignatureChanges", "Notes_Normal", "Notes_Expert", "Notes_Master", "ScrollChanges", "BarLineChanges", "GoGoRanges", "Lyrics", "ScrollType", "JPOSScroll", "Sudden",};
+	constexpr cstr GenericMemberNames[] = { "IsSelected", "BarLineVisible", "BalloonPopCount", "ScrollSpeed", "Start", "Duration", "Offset", "NoteType", "Tempo", "TimeSignature", "Lyric", "ScrollType", "JPOSScroll", "JPOSScrollDuration", "SuddenAppearanceOffset", "SuddenMovementOffset", "SuddenHideRoll"};
 
-    
+	// Member availability queries
+	template <typename T, GenericMember Member>
+	extern constexpr b8 IsMemberAvailable; // defined later
 
-    
+	template <typename T, GenericMember... Members>
+	constexpr GenericMemberFlags GetAvailableMemberFlags(enum_sequence<GenericMember, Members...>) {
+		return (GenericMemberFlags_None | ... | (IsMemberAvailable<T, Members> ? EnumToFlag(Members) : 0));
+	}
 
-    
+	template <typename T>
+	constexpr GenericMemberFlags AvailableMemberFlags = ForceConsteval<GetAvailableMemberFlags<T>(make_enum_sequence<GenericMember>())>;
 
 	union GenericMemberUnion
 	{
@@ -588,7 +622,10 @@ namespace PeepoDrumKit
 		else if constexpr (Member == GenericMember::I8_ScrollType) return (std::forward<GenericMemberUnionT>(values).I16);
 		else if constexpr (Member == GenericMember::F32_JPOSScroll) return (std::forward<GenericMemberUnionT>(values).CPX);
 		else if constexpr (Member == GenericMember::F32_JPOSScrollDuration) return (std::forward<GenericMemberUnionT>(values).F32);
-		else static_assert(dependent_v_false<Member>, "unhandled or invalid GenericMember value");
+		else if constexpr (Member == GenericMember::Time_AppearanceOffset) return (std::forward<GenericMemberUnionT>(values).Time);
+		else if constexpr (Member == GenericMember::Time_MovementOffset) return (std::forward<GenericMemberUnionT>(values).Time);
+		else if constexpr (Member == GenericMember::B8_SuddenHideRoll) return (std::forward<GenericMemberUnionT>(values).B8);
+		else static_assert(false, "unhandled or invalid GenericMember value");
 	}
 
 	template <GenericMember Member>
@@ -622,6 +659,9 @@ namespace PeepoDrumKit
 		constexpr auto& ScrollType() { return get<GenericMember::I8_ScrollType>(*this); }
 		constexpr auto& JPOSScrollMove() { return get<GenericMember::F32_JPOSScroll>(*this); }
 		constexpr auto& JPOSScrollDuration() { return get<GenericMember::F32_JPOSScrollDuration>(*this); }
+		constexpr auto& SuddenAppearanceOffset() { return get<GenericMember::Time_AppearanceOffset>(*this); }
+		constexpr auto& SuddenMovementOffset() { return get<GenericMember::Time_MovementOffset>(*this); }
+		constexpr auto& SuddenHideRoll() { return get<GenericMember::B8_SuddenHideRoll>(*this); }
 		constexpr const auto& IsSelected() const { return get<GenericMember::B8_IsSelected>(*this); }
 		constexpr const auto& BarLineVisible() const { return get<GenericMember::B8_BarLineVisible>(*this); }
 		constexpr const auto& BalloonPopCount() const { return get<GenericMember::I16_BalloonPopCount>(*this); }
@@ -636,6 +676,9 @@ namespace PeepoDrumKit
 		constexpr const auto& ScrollType() const { return get<GenericMember::I8_ScrollType>(*this); }
 		constexpr const auto& JPOSScrollMove() const { return get<GenericMember::F32_JPOSScroll>(*this); }
 		constexpr const auto& JPOSScrollDuration() const { return get<GenericMember::F32_JPOSScrollDuration>(*this); }
+		constexpr const auto& SuddenAppearanceOffset() const { return get<GenericMember::Time_AppearanceOffset>(*this); }
+		constexpr const auto& SuddenMovementOffset() const { return get<GenericMember::Time_MovementOffset>(*this); }
+		constexpr const auto& SuddenHideRoll() const { return get<GenericMember::B8_SuddenHideRoll>(*this); }
 	};
 
 	// types with subset members, return `void` for unavailable members
@@ -708,6 +751,16 @@ namespace PeepoDrumKit
 		else if constexpr (Member == GenericMember::Beat_Start) return (std::forward<ScrollTypeT>(event).BeatTime);
 	}
 
+	template <GenericMember Member, typename SuddenChangeT, expect_type_t<SuddenChangeT, SuddenChange> = true>
+	constexpr decltype(auto) get(SuddenChangeT&& event)
+	{
+		if constexpr (Member == GenericMember::B8_IsSelected) return (std::forward<SuddenChangeT>(event).IsSelected);
+		else if constexpr (Member == GenericMember::Time_AppearanceOffset) return (std::forward<SuddenChangeT>(event).AppearanceOffset);
+		else if constexpr (Member == GenericMember::Time_MovementOffset) return (std::forward<SuddenChangeT>(event).MovementOffset);
+		else if constexpr (Member == GenericMember::B8_SuddenHideRoll) return (std::forward<SuddenChangeT>(event).HideRoll);
+		else if constexpr (Member == GenericMember::Beat_Start) return (std::forward<SuddenChangeT>(event).BeatTime);
+	}
+
 	template <GenericMember Member, typename JPOSScrollChangeT, expect_type_t<JPOSScrollChangeT, JPOSScrollChange> = true>
 	constexpr decltype(auto) get(JPOSScrollChangeT&& event)
 	{
@@ -722,7 +775,7 @@ namespace PeepoDrumKit
 	struct has_get_t : std::false_type {};
 
 	template <typename T, auto Tag>
-	struct has_get_t<T, Tag, std::void_t<decltype(get<Tag>(std::forward<T>(std::declval<T&&>())))>> : std::true_type {};
+	struct has_get_t<T, Tag, std::enable_if_t<!std::is_void_v<decltype(get<Tag>(std::forward<T>(std::declval<T&&>())))>, void>> : std::true_type {};
 
 	template <typename T, auto Tag>
 	constexpr b8 has_get_v = has_get_t<T, Tag>::value;
@@ -736,16 +789,17 @@ namespace PeepoDrumKit
 			return std::forward<T>(value);
 	}
 
+	template <typename T, typename Tag, typename = void>
+	struct has_get_type_t : std::false_type {};
+
+	template <typename T, typename Tag>
+	struct has_get_type_t<T, Tag, std::enable_if_t<!std::is_void_v<decltype(get<Tag>(std::forward<T>(std::declval<T&&>())))>, void>> : std::true_type {};
+
+	template <typename T, typename Tag>
+	constexpr b8 has_get_type_v = has_get_type_t<T, Tag>::value;
+
 	template <typename T, GenericMember Member>
-	constexpr b8 IsMemberAvailable = has_get_v<T, Member> && !std::is_void_v<decltype(get_or_forward<Member>(std::declval<T>()))>;
-
-	template <typename T, GenericMember... Members>
-	constexpr GenericMemberFlags GetAvailableMemberFlags(enum_sequence<GenericMember, Members...>) {
-		return (GenericMemberFlags_None | ... | (IsMemberAvailable<T, Members> ? EnumToFlag(Members) : 0));
-	}
-
-	template <typename T>
-	constexpr GenericMemberFlags AvailableMemberFlags = ForceConsteval<GetAvailableMemberFlags<T>(make_enum_sequence<GenericMember>())>;
+	constexpr b8 IsMemberAvailable = (has_get_v<T, Member> || expect_type_v<T, GenericMemberType<Member>>) && !std::is_void_v<decltype(get_or_forward<Member>(std::declval<T>()))>;
 
 	// Apply `action` on `args` resolved by `member` if available, otherwise return `vDefault` on nothing if valid, otherwise return `vError`
 	// If `TRet` is not specified, all of `action`'s possible return values, `vDefault`, and `vError` must have the same type
@@ -775,6 +829,9 @@ namespace PeepoDrumKit
 		X(GenericMember::I8_ScrollType)
 		X(GenericMember::F32_JPOSScroll)
 		X(GenericMember::F32_JPOSScrollDuration)
+		X(GenericMember::Time_AppearanceOffset)
+		X(GenericMember::Time_MovementOffset)
+		X(GenericMember::B8_SuddenHideRoll)
 #undef X
 		default: assert(false); return keep_or_static_cast<TRet>(vError);
 		}
@@ -804,6 +861,18 @@ namespace PeepoDrumKit
 			std::forward<decltype(event)>(event), std::forward<Args>(args)...);
 	}
 
+	template <GenericMember Member, typename FAction, typename GenericMemberUnionT, expect_type_t<GenericMemberUnionT, GenericMemberUnion, AllGenericMembersUnionArray> = true, typename... Args>
+	constexpr __forceinline b8 TryDo(FAction&& action, GenericMemberUnionT&& value, Args&&... args)
+	{
+		return TryDoImpl<Member>(std::forward<FAction>(action), std::forward<decltype(value)>(value), get_or_forward<Member>(std::forward<Args>(args)...));
+	}
+
+	template <typename FAction, typename GenericMemberUnionT, expect_type_t<GenericMemberUnionT, GenericMemberUnion, AllGenericMembersUnionArray> = true, typename... Args>
+	constexpr __forceinline b8 TryDo(FAction&& action, GenericMemberUnionT&& value, GenericMember member, Args&&... args)
+	{
+		return TryDoImpl(std::forward<FAction>(action), std::forward<decltype(value)>(value), member, std::forward<Args>(args)...);
+	}
+
 	template <GenericMember Member, typename GenericListStructT, expect_type_t<GenericListStructT, struct GenericListStruct> = true, typename FAction, typename... Args>
 	constexpr b8 TryDo(FAction&& action, GenericListStructT&& in, GenericList list, Args&&...args)
 	{
@@ -827,7 +896,7 @@ namespace PeepoDrumKit
 	}
 
 	// need to be lambdas to be used as arguments with to-be-deduced parameter types (not needed since C++20)
-	constexpr auto GetGeneric = [](auto&& typedMember, auto& typedOutValue)
+	constexpr auto GetGeneric = [&](auto&& typedMember, auto& typedOutValue)
 	{
 		if constexpr (expect_type_v<decltype(typedMember), std::string> && !expect_type_v<decltype(typedOutValue), std::string>) // for GenericMember::CStr_Lyric
 			typedOutValue = typedMember.data();
@@ -835,14 +904,16 @@ namespace PeepoDrumKit
 			typedOutValue = static_cast<std::remove_reference_t<decltype(typedOutValue)>>(typedMember);
 	};
 
-	constexpr auto SetGeneric = [](auto& typedMember, auto&& typedInValue)
+	constexpr auto SetGeneric = [&](auto& typedMember, auto&& typedInValue)
 	{
 		typedMember = static_cast<std::remove_reference_t<decltype(typedMember)>>(typedInValue);
 	};
 
 	// generic adapters
-	// TryGet/Set(..., member, obj), where obj is a GenericMemberUnion object
-	// TryGet/Set<Member>(..., obj), where obj is either a GenericMemberUnion object or a concrete type object
+	// TryGet/Set<Member>(obj_args..., value), for compile-time constant Member
+	// TryGet/Set(obj_args..., member, value), for run-time determined member
+	// * obj_args... specifies the single target object
+	// * value is either a GenericMemberUnion object or a concrete type object
 	template <auto... Tags, typename... Args>
 	constexpr __forceinline decltype(auto) TryGet(Args&&... args) { return TryDo<Tags...>(GetGeneric, std::forward<Args>(args)...); }
 	template <auto... Tags, typename... Args>
@@ -857,10 +928,24 @@ namespace PeepoDrumKit
 		return v;
 	}
 
+	template <typename TDefault, typename... Args>
+	constexpr __forceinline decltype(auto) GetOrDefault(GenericMember member, TDefault&& vDefault, Args&&... args)
+	{
+		auto v = vDefault;
+		TryGet(std::forward<Args>(args)..., member, v);
+		return v;
+	}
+
 	template <GenericMember Member, typename TDefault = GenericMemberType<Member>, typename... Args>
 	constexpr __forceinline decltype(auto) GetOrEmpty(Args&&... args)
 	{
 		return GetOrDefault<Member>(TDefault{}, std::forward<Args>(args)...);
+	}
+
+	template <typename TDefault, typename... Args>
+	constexpr __forceinline decltype(auto) GetOrEmpty(GenericMember member, Args&&... args)
+	{
+		return GetOrDefault(member, TDefault{}, std::forward<Args>(args)...);
 	}
 
 	// NOTE: Little helpers here just for convenience
@@ -895,6 +980,7 @@ namespace PeepoDrumKit
 			GoGoRange GoGo;
 			ScrollType ScrollType;
 			JPOSScrollChange JPOSScroll;
+			SuddenChange Sudden;
 
 			inline PODData() { ::memset(this, 0, sizeof(*this)); }
 		} POD;
@@ -957,7 +1043,8 @@ namespace PeepoDrumKit
 		else if constexpr (List == GenericList::Lyrics) return (std::forward<ChartCourseT>(course).Lyrics);
 		else if constexpr (List == GenericList::ScrollType) return (std::forward<ChartCourseT>(course).ScrollTypes);
 		else if constexpr (List == GenericList::JPOSScroll) return (std::forward<ChartCourseT>(course).JPOSScrollChanges);
-		else static_assert(dependent_v_false<List>, "unhandled or invalid GenericList value");
+		else if constexpr (List == GenericList::Sudden) return (std::forward<ChartCourseT>(course).SuddenChanges);
+		else static_assert(false, "unhandled or invalid GenericList value");
 	}
 
 	template <GenericList List>
@@ -977,7 +1064,8 @@ namespace PeepoDrumKit
 		else if constexpr (List == GenericList::Lyrics) return (std::forward<GenericListStructT>(inValue).NonTrivial.Lyric);
 		else if constexpr (List == GenericList::ScrollType) return (std::forward<GenericListStructT>(inValue).POD.ScrollType);
 		else if constexpr (List == GenericList::JPOSScroll) return (std::forward<GenericListStructT>(inValue).POD.JPOSScroll);
-		else static_assert(dependent_v_false<List>, "unhandled or invalid GenericList value");
+		else if constexpr (List == GenericList::Sudden) return (std::forward<GenericListStructT>(inValue).POD.Sudden);
+		else static_assert(false, "unhandled or invalid GenericList value");
 	}
 
 	// Access functions for concrete GenericListStruct types
@@ -996,18 +1084,8 @@ namespace PeepoDrumKit
 	template <typename T>
 	constexpr b8 IsChartEventType = IsNonListChartEventTrait<std::remove_cv_t<std::remove_reference_t<T>>>::value || IsChartEventTypeHelper<T, make_enum_sequence<GenericList>>::value;
 
-	template <typename T, typename = void>
-	struct ChartEventTypeToGenericListHelper : std::false_type {};
-
-	template <typename T, GenericList... Lists>
-	struct ChartEventTypeToGenericListHelper<T, enum_sequence<GenericList, Lists...>>
-		: std::conditional_t<IsChartEventType<T>,
-			std::integral_constant<GenericList, std::min({ (expect_type_v<T, GenericListStructType<Lists>> ? Lists : GenericList::Count)... })>,
-			std::false_type>
-		{};
-
 	template <typename T>
-	constexpr GenericList ChartEventTypeToGenericList = ChartEventTypeToGenericListHelper<T, make_enum_sequence<GenericList>>::value;
+	constexpr GenericList ChartEventTypeToGenericList = TypeToEnum<GenericListStructType, T, GenericList>;
 
 	template <typename TEvent, typename GenericListStructT, expect_type_t<GenericListStructT, GenericListStruct> = true>
 	constexpr decltype(auto) get(GenericListStructT&& inValue)
@@ -1053,6 +1131,7 @@ namespace PeepoDrumKit
 		X(GenericList::Lyrics)
 		X(GenericList::ScrollType)
 		X(GenericList::JPOSScroll)
+		X(GenericList::Sudden)
 #undef X
 		default: assert(false); return keep_or_static_cast<TRet>(vError);
 		}
@@ -1064,8 +1143,8 @@ namespace PeepoDrumKit
 	constexpr void ApplyForEachGenericList(enum_sequence<GenericList, Lists...>, FAction&& action, TCastedArgs&&... args)
 	{
 		([&] {
-			auto getSingle = [](auto&& arg) { return get<Lists>(std::forward<decltype(arg)>(arg)); };
-			action(Lists, getSingle(std::forward<TCastedArgs>(args))...);
+			constexpr GenericList List = Lists;
+			action(Lists, get<List>(std::forward<TCastedArgs>(args))...);
 		}(), ...);
 	}
 
@@ -1093,7 +1172,7 @@ namespace PeepoDrumKit
 	constexpr b8 ListHasDurations(GenericList list) { return IsNotesList(list) || (list == GenericList::GoGoRanges); }
 	constexpr b8 ListUsesInclusiveBeatCheck(GenericList list) { return IsNotesList(list) || (list != GenericList::GoGoRanges && list != GenericList::Lyrics); }
 	constexpr b8 ListIsItemEndBounded(GenericList list) { return IsNotesList(list) || (list == GenericList::GoGoRanges) || (list == GenericList::JPOSScroll); }
-	constexpr b8 ListHasNoteStaticEffects(GenericList list) { return (list == GenericList::TempoChanges) || (list == GenericList::ScrollChanges) || (list == GenericList::ScrollType); }
+	constexpr b8 ListHasNoteStaticEffects(GenericList list) { return (list == GenericList::TempoChanges) || (list == GenericList::ScrollChanges) || (list == GenericList::ScrollType) || (list == GenericList::Sudden); }
 	constexpr b8 ListHasBarlineStaticEffects(GenericList list) { return ListHasNoteStaticEffects(list) || (list == GenericList::BarLineChanges); }
 
 	constexpr size_t GetGenericMember_RawByteSize(GenericMember member)

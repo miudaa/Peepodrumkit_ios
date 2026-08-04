@@ -60,22 +60,22 @@ namespace PeepoDrumKit
 
 	static constexpr cstr TJANoteTypeNames[] =
 	{
-		"_",
-		"o",
-		"x",
-		"O",
-		"X",
-		"d->",
-		"D->",
-		"b->",
-		"<-",
-		"B->",
-		"OO",
-		"XX",
-		"?",
-		"#",
-		"V",
-		"#->",
+		u8"_",
+		u8"o",
+		u8"x",
+		u8"O",
+		u8"X",
+		u8"d->",
+		u8"D->",
+		u8"b->",
+		u8"<-",
+		u8"B->",
+		u8"OO",
+		u8"XX",
+		u8"?",
+		u8"#",
+		u8"V",
+		u8"#->",
 	};
 	static_assert(ArrayCount(TJANoteTypeNames) == EnumCount<TJA::NoteType>);
 
@@ -137,7 +137,7 @@ namespace PeepoDrumKit
 			IsFirstFrame = false;
 		}
 
-		if (LoadTJAFuture.valid() && future_is_ready(LoadTJAFuture))
+		if (LoadTJAFuture.valid() && LoadTJAFuture._Is_ready())
 		{
 			LoadedTJAFile = LoadTJAFuture.get();
 			TJATextEditor.SetText(LoadedTJAFile.FileContentUTF8);
@@ -430,8 +430,8 @@ namespace PeepoDrumKit
 							case TJA::ParsedChartCommandType::SENoteChange: {} break;
 							case TJA::ParsedChartCommandType::SetNextSong: {} break;
 							case TJA::ParsedChartCommandType::ChangeDirection: {} break;
-							case TJA::ParsedChartCommandType::SetSudden: {} break;
 							case TJA::ParsedChartCommandType::SetJPOSScroll: {} break;
+							case TJA::ParsedChartCommandType::SetSudden: {} break;
 							default: {} break;
 							}
 

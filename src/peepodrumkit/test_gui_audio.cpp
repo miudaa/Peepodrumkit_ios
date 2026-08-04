@@ -72,22 +72,9 @@ namespace PeepoDrumKit
 
 			Gui::Property::PropertyTextValueFunc("Audio Backend", [&]
 			{
-				const u32 variantCount = Audio::Engine.GetBackendVariantCount();
-				std::vector<cstr> names(variantCount);
-				for (u32 i = 0; i < variantCount; i++)
-					names[i] = Audio::Engine.GetBackendVariantName(i);
-
 				Gui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-				i32 currentIdx = (Audio::Engine.GetBackend() == Audio::Backend::PlatformExclusive && variantCount > 1) ? 1 : 0;
-				if (Gui::BeginCombo("##Backend", names[currentIdx]))
-				{
-					for (u32 i = 0; i < variantCount; i++)
-					{
-						if (Gui::Selectable(names[i], (i == (u32)currentIdx)))
-							Audio::Engine.SetBackend((i == 0) ? Audio::Backend::PlatformShared : Audio::Backend::PlatformExclusive);
-					}
-					Gui::EndCombo();
-				}
+				if (auto v = Audio::Engine.GetBackend(); Gui::ComboEnum("##Backend", &v, Audio::BackendNames))
+					Audio::Engine.SetBackend(v);
 			});
 
 			Gui::Property::PropertyTextValueFunc("Channel Mixing Behavior", [&]

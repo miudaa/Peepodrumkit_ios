@@ -1,4 +1,4 @@
-#include "chart.h"
+﻿#include "chart.h"
 #include "core_build_info.h"
 #include <algorithm>
 
@@ -11,7 +11,7 @@ namespace PeepoDrumKit
 			char buffer[512];
 			va_list args;
 			va_start(args, fmt);
-			onMessageFunc(std::string_view(buffer, vsnprintf(buffer, ArrayCount(buffer), fmt, args)), userData);
+			onMessageFunc(std::string_view(buffer, _vsnprintf_s(buffer, ArrayCount(buffer), fmt, args)), userData);
 			va_end(args);
 		};
 
@@ -238,6 +238,9 @@ namespace PeepoDrumKit
 				for (const TJA::ConvertedScrollType& inScrollType : inMeasure.ScrollTypes)
 					outCourse.ScrollTypes.Sorted.push_back(ScrollType{ (inMeasure.StartTime + inScrollType.TimeWithinMeasure),  static_cast<ScrollMethod>(inScrollType.Method) });
 
+				for (const TJA::ConvertedSudden& inSuddenChange : inMeasure.SuddenChanges)
+					outCourse.SuddenChanges.Sorted.push_back(SuddenChange{ (inMeasure.StartTime + inSuddenChange.TimeWithinMeasure), inSuddenChange.AppearanceOffset, inSuddenChange.MovementOffset, inSuddenChange.HideRoll });
+
 				for (const TJA::ConvertedJPOSScroll& inJPOSScrollChange : inMeasure.JPOSScrollChanges)
 					outCourse.JPOSScrollChanges.Sorted.push_back(JPOSScrollChange{ (inMeasure.StartTime + inJPOSScrollChange.TimeWithinMeasure), inJPOSScrollChange.Move, inJPOSScrollChange.Duration });
 
@@ -329,7 +332,7 @@ namespace PeepoDrumKit
 			outCourse.Metadata.Others = inCourse.OtherMetadata;
 
 			// TODO: Is this implemented correctly..? Need to have enough measures to cover every note/command and pad with empty measures up to the chart duration
-			// BUG: NOPE! "07 �Q�[���~���[�W�b�N/003D. MagiCatz/MagiCatz.tja" for example still gets rounded up and then increased by a measure each time it gets saved
+			// BUG: NOPE! "07 ゲームミュージック/003D. MagiCatz/MagiCatz.tja" for example still gets rounded up and then increased by a measure each time it gets saved
 			// ... and even so does "Heat Haze Shadow 2.tja" without any weird time signatures..??
 			const Beat inChartMaxUsedBeat = FindCourseMaxUsedBeat(inCourse);
 			const Beat inChartBeatDuration = inCourse.TempoMap.TimeToBeat(in.GetDurationOrDefault());
@@ -407,6 +410,13 @@ namespace PeepoDrumKit
 				TJA::ConvertedMeasure* outConvertedMeasure = tryFindMeasureForBeat(outConvertedMeasures, inScrollType.BeatTime);
 				if (assert(outConvertedMeasure != nullptr); outConvertedMeasure != nullptr)
 					outConvertedMeasure->ScrollTypes.push_back(TJA::ConvertedScrollType { (inScrollType.BeatTime - outConvertedMeasure->StartTime), static_cast<i8>(inScrollType.Method) });
+			}
+
+			for (const SuddenChange& inSudden : inCourse.SuddenChanges)
+			{
+				TJA::ConvertedMeasure* outConvertedMeasure = tryFindMeasureForBeat(outConvertedMeasures, inSudden.BeatTime);
+				if (assert(outConvertedMeasure != nullptr); outConvertedMeasure != nullptr)
+					outConvertedMeasure->SuddenChanges.push_back(TJA::ConvertedSudden{ (inSudden.BeatTime - outConvertedMeasure->StartTime), inSudden.AppearanceOffset, inSudden.MovementOffset, inSudden.HideRoll });
 			}
 
 			for (const JPOSScrollChange& JPOSScroll : inCourse.JPOSScrollChanges)

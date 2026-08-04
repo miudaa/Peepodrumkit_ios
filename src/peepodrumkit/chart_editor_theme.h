@@ -6,7 +6,7 @@
 namespace PeepoDrumKit
 {
 	inline f32 TimelineRowHeight = 32.0f;
-	inline f32 TimelineRowHeightNotes = 64.0f;
+	inline f32 TimelineRowHeightNotes = 48.0f;
 	inline f32 TimelineAutoScrollLockContentWidthFactor = 0.35f;
 	inline f32 TimelineCursorHeadHeight = 10.0f;
 	inline f32 TimelineCursorHeadWidth = 11.0f;
@@ -106,6 +106,8 @@ namespace PeepoDrumKit
 	inline u32 TimelineScrollChangeComplexLineColor = 0xDC1DA386;
 	inline u32 TimelineBarLineChangeLineColor = 0xDCBE9E2C;
 	inline u32 TimelineScrollTypeLineColor = 0xDCE2E222;
+	inline u32 TimelineSuddenChangeLineColor = 0xDC2691FF;
+	inline u32 TimelineSuddenChangeDelayMoveLineColor = 0xDC22BEE2;
 	inline u32 TimelineSelectedItemLineColor = 0xDCFFFFFF;
 
 	inline u32 TimelineSongDemoStartMarkerColorFill = 0x3B75AD85;
@@ -118,12 +120,12 @@ namespace PeepoDrumKit
 	inline u32 GameLaneContentBackgroundColor = 0xFF282828;
 	inline u32 GameLaneContentBackgroundColorGogo = 0x3C3838FF;
 	inline u32 GameLaneFooterBackgroundColor = 0xFF848484;
-	inline u32 GameLaneHitCircleInnerFillColor = 0xFF525252;
-	inline u32 GameLaneHitCircleInnerOutlineColor = 0xFF888888;
-	inline u32 GameLaneHitCircleOuterOutlineColor = 0xFF646464;
-	inline u32 GameLaneHitCircleInnerFillColorGogo = 0xFF00BAFF;
-	inline u32 GameLaneHitCircleInnerOutlineColorGogo = 0xFF00F0FF;
-	inline u32 GameLaneHitCircleOuterOutlineColorGogo = 0xFF00CCFF;
+	inline u32 GameLaneHitCircleInnerFillColor = 0x32FFFFFF;
+	inline u32 GameLaneHitCircleInnerOutlineColor = 0x72FFFFFF;
+	inline u32 GameLaneHitCircleOuterOutlineColor = 0x47FFFFFF;
+	inline u32 GameLaneHitCircleInnerFillColorGogo = 0x923FFFFF;
+	inline u32 GameLaneHitCircleInnerOutlineColorGogo = 0xD23FFFFF;
+	inline u32 GameLaneHitCircleOuterOutlineColorGogo = 0xA73FFFFF;
 
 	inline u32 NoteColorRed = 0xFF2B41F3;
 	inline u32 NoteColorBlue = 0xFFC2C351;

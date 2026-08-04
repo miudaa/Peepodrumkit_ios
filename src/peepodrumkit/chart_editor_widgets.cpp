@@ -121,10 +121,10 @@ namespace PeepoDrumKit
 			static_cast<i32>(DifficultyLevelDecimal::None), 
 			static_cast<i32>(DifficultyLevelDecimal::Max), 
 			(v == static_cast <i32>(DifficultyLevelDecimal::None))
-				? "None"
+				? u8"None"
 				: (v >= static_cast <i32>(DifficultyLevelDecimal::PlusThreshold))
-				? "%d (+)"
-				: "%d",
+				? u8"%d (+)"
+				: u8"%d",
 			ImGuiSliderFlags_AlwaysClamp))
 		{
 			*inOutLevel = static_cast<DifficultyLevelDecimal>(v);
@@ -160,18 +160,18 @@ namespace PeepoDrumKit
 		Gui::PushStyleColor(ImGuiCol_FrameBgHovered, Gui::GetStyleColorVec4(ImGuiCol_FrameBg));
 		Gui::PushStyleColor(ImGuiCol_FrameBgActive, Gui::GetStyleColorVec4(ImGuiCol_FrameBg));
 		if (i32 v = static_cast<i32>(*inOutLevel); Gui::SliderInt(label, &v,
-			static_cast<i32>(DifficultyLevel::Min), static_cast<i32>(DifficultyLevel::Max), "★ %d", ImGuiSliderFlags_AlwaysClamp))
+			static_cast<i32>(DifficultyLevel::Min), static_cast<i32>(DifficultyLevel::MaxSoft), u8"★ %d"))
 		{
-			*inOutLevel = static_cast<DifficultyLevel>(v);
+			*inOutLevel = static_cast<DifficultyLevel>(Clamp(v, static_cast<i32>(DifficultyLevel::Min), static_cast<i32>(DifficultyLevel::Max)));
 			valueWasChanged = true;
 		}
 		Gui::PopStyleColor(5);
 
 		const Rect sliderRect = Gui::GetItemRect();
 		const f32 availableWidth = sliderRect.GetWidth();
-		const vec2 starSize = vec2(availableWidth / static_cast<f32>(DifficultyLevel::Max), Gui::GetFrameHeight());
+		const vec2 starSize = vec2(availableWidth / static_cast<f32>(DifficultyLevel::MaxSoft), Gui::GetFrameHeight());
 
-		const b8 starsFitOnScreen = (starSize.x >= Gui::GetFrameHeight()) && !Gui::IsItemBeingEditedAsText();
+		const b8 starsFitOnScreen = (starSize.x >= Gui::GetFrameHeight()) && !Gui::IsItemBeingEditedAsText() && ((*inOutLevel) <= DifficultyLevel::MaxSoft);
 
 		// NOTE: Use the last frame result here too to match the slider text as it has already been drawn
 		if (inOutFitOnScreenLastFrame)
@@ -183,7 +183,7 @@ namespace PeepoDrumKit
 			const f32 starScale = Gui::GetFontSize() / 16.0f;
 
 			// TODO: Consider drawing star background manually instead of using the slider grab hand (?)
-			for (i32 i = 0; i < static_cast<i32>(DifficultyLevel::Max); i++)
+			for (i32 i = 0; i < static_cast<i32>(DifficultyLevel::MaxSoft); i++)
 			{
 				const Rect starRect = Rect::FromTLSize(sliderRect.TL + vec2(i * starSize.x, 0.0f), starSize);
 				const auto star = (i >= static_cast<i32>(*inOutLevel)) ? fontSizedStarParamOutline : fontSizedStarParamFilled;
@@ -194,6 +194,14 @@ namespace PeepoDrumKit
 		inOutHoveredLastFrame = Gui::IsItemHovered();
 		inOutFitOnScreenLastFrame = starsFitOnScreen;
 		return valueWasChanged;
+	}
+
+	template <typename T, typename MultiEditDataUnionT, expect_type_t<MultiEditDataUnionT, union MultiEditDataUnion> = true>
+	constexpr decltype(auto) get(MultiEditDataUnionT&& value)
+	{
+		if constexpr (expect_type_v<T, f32, f32[4]>) return (std::forward<MultiEditDataUnionT>(value).F32_V);
+		else if constexpr (expect_type_v<T, i32, i32[4]>) return (std::forward<MultiEditDataUnionT>(value).I32_V);
+		else if constexpr (expect_type_v<T, i16, i16[4]>) return (std::forward<MultiEditDataUnionT>(value).I16_V);
 	}
 
 	union MultiEditDataUnion
@@ -229,6 +237,63 @@ namespace PeepoDrumKit
 		u32* TextColorOverride = nullptr;
 	};
 
+	template <ImGuiDataType_ Type>
+	auto get()
+	{
+		if constexpr (Type == ImGuiDataType_S8) return i8{};
+		else if constexpr (Type == ImGuiDataType_U8) return u8{};
+		else if constexpr (Type == ImGuiDataType_S16) return i16{};
+		else if constexpr (Type == ImGuiDataType_U16) return u16{};
+		else if constexpr (Type == ImGuiDataType_S32) return i32{};
+		else if constexpr (Type == ImGuiDataType_U32) return u32{};
+		else if constexpr (Type == ImGuiDataType_S64) return i64{};
+		else if constexpr (Type == ImGuiDataType_U64) return u64{};
+		else if constexpr (Type == ImGuiDataType_Float) return f32{};
+		else if constexpr (Type == ImGuiDataType_Double) return f64{};
+		else if constexpr (Type == ImGuiDataType_Bool) return b8{};
+		else if constexpr (Type == ImGuiDataType_String) return cstr{};
+		else static_assert(false, "unhandled or invalid ImGuiDataType type");
+	}
+	template <ImGuiDataType_ type>
+	using ImGuiDataTypeToType = decltype(get<type>());
+
+	template <ImGuiDataType_ type, typename MultiEditDataUnionT, expect_type_t<MultiEditDataUnionT, union MultiEditDataUnion> = true>
+	constexpr decltype(auto) get(MultiEditDataUnionT&& value)
+	{
+		return get<ImGuiDataTypeToType<type>>(std::forward<MultiEditDataUnionT>(value));
+	}
+
+	template <>
+	struct EnumCountMemberHelper<ImGuiDataType_> : std::integral_constant<ImGuiDataType_, ImGuiDataType_COUNT> {};
+	template <typename T>
+	constexpr auto TypeToImGuiDataType = TypeToEnum<ImGuiDataTypeToType, T, ImGuiDataType_>;
+
+	// Apply `action` on `args` resolved by `type` if valid, otherwise return `vError`
+	// If `TRet` is not specified, all of `action`'s possible return values and `vError` must have the same type
+	template <typename TRet = keep_deduced_t, typename TDefault, typename FAction, typename... TCastedArgs>
+	constexpr decltype(auto) ApplySingleImGuiDataType(ImGuiDataType type, FAction&& action, TDefault&& vError, TCastedArgs&&... args)
+	{
+		// unfortunately, as for C++20, there are no ways to make a switch-like lookup reliably without typing out all the cases
+		switch (type) {
+#define X(_Type) \
+		{ case (_Type): return keep_or_static_cast<TRet>(action(get_or_forward<(_Type)>(std::forward<TCastedArgs>(args))...)); }
+			X(ImGuiDataType_S8)
+			X(ImGuiDataType_U8)
+			X(ImGuiDataType_S16)
+			X(ImGuiDataType_U64)
+			X(ImGuiDataType_U16)
+			X(ImGuiDataType_S32)
+			X(ImGuiDataType_U32)
+			X(ImGuiDataType_S64)
+			X(ImGuiDataType_Float)
+			X(ImGuiDataType_Double)
+			X(ImGuiDataType_Bool)
+			X(ImGuiDataType_String)
+#undef X
+		default: assert(false); return keep_or_static_cast<TRet>(vError);
+		}
+	}
+
 	static MultiEditWidgetResult GuiPropertyMultiSelectionEditWidget(std::string_view label, const MultiEditWidgetParam& in)
 	{
 		MultiEditWidgetResult out = {};
@@ -244,13 +309,13 @@ namespace PeepoDrumKit
 					for (i32 c = 0; c < in.Components; c++)
 					{
 						out.HasValueIncrement |= (1 << c);
-						switch (in.DataType)
-						{
-						case ImGuiDataType_Float: { out.ValueIncrement.F32_V[c] = (v.F32_V[c] - in.Value.F32_V[c]); } break;
-						case ImGuiDataType_S32: { out.ValueIncrement.I32_V[c] = (v.I32_V[c] - in.Value.I32_V[c]); } break;
-						case ImGuiDataType_S16: { out.ValueIncrement.I16_V[c] = (v.I16_V[c] - in.Value.I16_V[c]); } break;
-						default: assert(false); break;
-						}
+						using TT = decltype(get<ImGuiDataType_Float>(in.Value));
+						constexpr b8 a = has_get_v<MultiEditDataUnion, ImGuiDataType_Float>;
+						ApplySingleImGuiDataType(in.DataType, overloaded{
+							[&](MultiEditDataUnion& outInc, const auto& v, const auto& inV) { assert(false && "unsupported type"); return 0; },
+							[&](auto&& outInc, const auto& v, const auto& inV) { outInc[c] = (v[c] - inV[c]); return 0; },
+							}, 0,
+							out.ValueIncrement, v, in.Value);
 					}
 				}
 			}
@@ -283,22 +348,18 @@ namespace PeepoDrumKit
 
 					if (in.EnableClamp)
 					{
-						switch (in.DataType)
-						{
-						case ImGuiDataType_Float: { v.F32_V[c] = Clamp(v.F32_V[c], in.ValueClampMin.F32_V[c], in.ValueClampMax.F32_V[c]); } break;
-						case ImGuiDataType_S32: { v.I32_V[c] = Clamp(v.I32_V[c], in.ValueClampMin.I32_V[c], in.ValueClampMax.I32_V[c]); } break;
-						case ImGuiDataType_S16: { v.I16_V[c] = Clamp(v.I16_V[c], in.ValueClampMin.I16_V[c], in.ValueClampMax.I16_V[c]); } break;
-						default: assert(false); break;
-						}
+						ApplySingleImGuiDataType(in.DataType, overloaded{
+							[&](MultiEditDataUnion& v, const auto& clampMin, const auto& clampMax) { assert(false && "unsupported type"); return 0; },
+							[&](auto&& v, const auto& clampMin, const auto& clampMax) { v[c] = Clamp(v[c], clampMin[c], clampMax[c]); return 0;},
+							}, 0,
+							v, in.ValueClampMin, in.ValueClampMax);
 					}
 
-					switch (in.DataType)
-					{
-					case ImGuiDataType_Float: { out.ValueExact.F32_V[c] = v.F32_V[c]; out.ValueIncrement.F32_V[c] = (v.F32_V[c] - in.Value.F32_V[c]); } break;
-					case ImGuiDataType_S32: { out.ValueExact.I32_V[c] = v.I32_V[c]; out.ValueIncrement.I32_V[c] = (v.I32_V[c] - in.Value.I32_V[c]); } break;
-					case ImGuiDataType_S16: { out.ValueExact.I16_V[c] = v.I16_V[c]; out.ValueIncrement.I16_V[c] = (v.I16_V[c] - in.Value.I16_V[c]); } break;
-					default: assert(false); break;
-					}
+					ApplySingleImGuiDataType(in.DataType, overloaded{
+						[&](MultiEditDataUnion& outV, auto&& outInc, const auto& v, const auto& inV) { assert(false && "unsupported type"); return 0; },
+						[&](auto&& outV, auto&& outInc, const auto& v, const auto& inV) { outV[c] = v[c]; outInc[c] = (v[c] - inV[c]); return 0; },
+						}, 0,
+						out.ValueExact, out.ValueIncrement, v, in.Value);
 				}
 			}
 			textInputActiveLastFrame = result.IsTextItemActive;
@@ -311,13 +372,11 @@ namespace PeepoDrumKit
 					if (in.HasMixedValues & (1 << c))
 					{
 						char min[64], max[64];
-						switch (in.DataType)
-						{
-						case ImGuiDataType_Float: { sprintf_s(min, formatString, in.MixedValuesMin.F32_V[c]); sprintf_s(max, formatString, in.MixedValuesMax.F32_V[c]); } break;
-						case ImGuiDataType_S32: { sprintf_s(min, formatString, in.MixedValuesMin.I32_V[c]); sprintf_s(max, formatString, in.MixedValuesMax.I32_V[c]); } break;
-						case ImGuiDataType_S16: { sprintf_s(min, formatString, in.MixedValuesMin.I16_V[c]); sprintf_s(max, formatString, in.MixedValuesMax.I16_V[c]); } break;
-						default: assert(false); break;
-						}
+						ApplySingleImGuiDataType(in.DataType, overloaded{
+							[&](const MultiEditDataUnion& inMin, const auto& inMax) { assert(false && "unsupported type"); min[0] = max[0] = '\0'; return 0; },
+							[&](const auto& inMin, const auto& inMax) { sprintf_s(min, formatString, inMin[c]); sprintf_s(max, formatString, inMax[c]); return 0; },
+							}, 0,
+							in.MixedValuesMin, in.MixedValuesMax);
 						char multiSelectionPreview[128]; sprintf_s(multiSelectionPreview, "(%s ... %s)", min, max);
 
 						Gui::PushStyleColor(ImGuiCol_Text, Gui::GetColorU32(ImGuiCol_Text, 0.6f));
@@ -327,13 +386,11 @@ namespace PeepoDrumKit
 					else
 					{
 						char preview[64];
-						switch (in.DataType)
-						{
-						case ImGuiDataType_Float: { sprintf_s(preview, formatString, in.MixedValuesMin.F32_V[c]); } break;
-						case ImGuiDataType_S32: { sprintf_s(preview, formatString, in.MixedValuesMin.I32_V[c]); } break;
-						case ImGuiDataType_S16: { sprintf_s(preview, formatString, in.MixedValuesMin.I16_V[c]); } break;
-						default: assert(false); break;
-						}
+						ApplySingleImGuiDataType(in.DataType, overloaded{
+							[&](const MultiEditDataUnion& inV) { assert(false && "unsupported type"); preview[0] = '\0'; return 0; },
+							[&](const auto& inV) { sprintf_s(preview, formatString, inV[c]); return 0; },
+							}, 0,
+							in.MixedValuesMin);
 						Gui::RenderTextClipped(result.TextItemRect[c].TL + vec2(style.FramePadding.x, 0.0f), result.TextItemRect[c].BR, preview, nullptr, nullptr, { 0.0f, 0.5f });
 					}
 				}
@@ -344,14 +401,15 @@ namespace PeepoDrumKit
 		return out;
 	}
 
-	static b8 GuiPropertyRangeInterpolationEditWidget(std::string_view label, f32 inOutStartEnd[2], f32 step, f32 stepFast, f32 minValue, f32 maxValue, cstr format, const cstr previewStrings[2])
+	template <typename T>
+	static b8 GuiPropertyRangeInterpolationEditWidget(std::string_view label, T inOutStartEnd[2], T step, T stepFast, b8 enableClamp, T minValue, T maxValue, cstr format, const cstr previewStrings[2])
 	{
 		b8 wasValueChanged = false;
 		Gui::PushID(Gui::StringViewStart(label), Gui::StringViewEnd(label));
 		Gui::Property::PropertyTextValueFunc(label, [&]
 		{
 			static constexpr i32 components = 2; // NOTE: Unicode "Rightwards Arrow" U+2192
-			static constexpr std::string_view divisionText = "  →  "; // "  ->  "; // " < > ";
+			static constexpr std::string_view divisionText = u8"  →  "; // "  ->  "; // " < > ";
 			const f32 divisionLabelWidth = Gui::CalcTextSize(Gui::StringViewStart(divisionText), Gui::StringViewEnd(divisionText)).x;
 			const f32 perComponentInputFloatWidth = Floor(((Gui::GetContentRegionAvail().x - divisionLabelWidth) / static_cast<f32>(components)));
 
@@ -364,10 +422,11 @@ namespace PeepoDrumKit
 
 				Gui::SetNextItemWidth(isLastComponent ? (Gui::GetContentRegionAvail().x - 1.0f) : perComponentInputFloatWidth);
 				Gui::InputScalarWithButtonsExData exData {}; exData.TextColor = Gui::GetColorU32(ImGuiCol_Text, showPreviewStrings ? 0.0f : 1.0f); exData.SpinButtons = true;
-				Gui::InputScalarWithButtonsResult result = Gui::InputScalar_WithExtraStuff("##Component", ImGuiDataType_Float, &inOutStartEnd[component], &step, &stepFast, format, ImGuiInputTextFlags_None, &exData);
+				Gui::InputScalarWithButtonsResult result = Gui::InputScalar_WithExtraStuff("##Component", TypeToImGuiDataType<T>, &inOutStartEnd[component], &step, &stepFast, format, ImGuiInputTextFlags_None, &exData);
 				if (result.ValueChanged)
 				{
-					inOutStartEnd[component] = Clamp(inOutStartEnd[component], minValue, maxValue);
+					if (enableClamp)
+						inOutStartEnd[component] = Clamp(inOutStartEnd[component], minValue, maxValue);
 					wasValueChanged = true;
 				}
 				textInputActiveLastFrame = result.IsTextItemActive;
@@ -395,33 +454,30 @@ namespace PeepoDrumKit
 
 namespace PeepoDrumKit
 {
-	// NOTE: Soft clamp for sliders but hard limit to allow *typing in* values higher, even if it can cause clipping
+	// NOTE: Soft clamp for sliders but still allow *typing in* values to be higher, even if it can cause clipping
 	static constexpr f32 MinVolume = 0.0f;
 	static constexpr f32 MaxVolumeSoftLimit = 1.0f;
-	static constexpr f32 MaxVolumeHardLimit = 4.0f;
+	static constexpr f32 MaxVolumeHardLimit = F32Max;
 
+	// limited values to prevent crashes due to high load
 	static constexpr i32 MinTimeSignatureValue = -Beat::TicksPerBeat * 4;
 	static constexpr i32 MaxTimeSignatureValue = Beat::TicksPerBeat * 4;
-	static constexpr i16 MinBalloonCount = 0;
-	static constexpr i16 MaxBalloonCount = 999;
+	static constexpr f32 MinBPM = -60000.0f;
+	static constexpr f32 MaxBPM = 60000.0f;
 
-	// TODO: Turn these into user settings
-	// "allowed_tempo_bpm_range_min" = 30
-	// "allowed_tempo_bpm_range_max" = 960
-	// "allowed_scroll_speed_range_min" = -100
-	// "allowed_scroll_speed_range_max" = +100
-	// "allowed_note_time_offset_range_min" = -35
-	// "allowed_note_time_offset_range_max" = +35
-	static constexpr f32 MinBPM = -10000.0f;//30.0f;
-	static constexpr f32 MaxBPM = 10000.0f;//960.0f;
-	static constexpr f32 MinScrollSpeed = -100.0f;
-	static constexpr f32 MaxScrollSpeed = +100.0f;
-	static constexpr f32 MaxJPOSScrollMove = +9999.0f;
-	static constexpr f32 MinJPOSScrollMove = -9999.0f;
-	static constexpr f32 MaxJPOSScrollDuration = +3600.0f;
-	static constexpr f32 MinJPOSScrollDuration = -3600.0f;
-	static constexpr Time MinNoteTimeOffset = Time::FromMS(-35.0);
-	static constexpr Time MaxNoteTimeOffset = Time::FromMS(+35.0);
+	// practically no limits
+	static constexpr i16 MinBalloonCount = 0;
+	static constexpr i16 MaxBalloonCount = I16Max;
+	static constexpr f32 MinScrollSpeed = -F32Max;
+	static constexpr f32 MaxScrollSpeed = +F32Max;
+	static constexpr f32 MinScrollBPM = -F32Max;
+	static constexpr f32 MaxScrollBPM = +F32Max;
+	static constexpr f32 MaxJPOSScrollMove = +F32Max;
+	static constexpr f32 MinJPOSScrollMove = -F32Max;
+	static constexpr f32 MaxJPOSScrollDuration = +F32Max;
+	static constexpr f32 MinJPOSScrollDuration = -F32Max;
+	static constexpr Time MinNoteTimeOffset = Time::FromMS(-F64Max);
+	static constexpr Time MaxNoteTimeOffset = Time::FromMS(+F64Max);
 
 	cstr LoadingTextAnimation::UpdateFrameAndGetText(b8 isLoadingThisFrame, f32 deltaTimeSec)
 	{
@@ -491,18 +547,16 @@ namespace PeepoDrumKit
 				Gui::PopFont();
 				Gui::PopStyleColor();
 
-				// v1.3
+				// v1.2.?
 				{
 					Gui::PushStyleColor(ImGuiCol_Text, colors.RedBright);
 					Gui::PushFont(FontMain, GuiScaleI32_AtTarget(FontBaseSizes::Medium));
-					Gui::TextUnformatted("v1.3 (alpha)");
+					Gui::TextUnformatted("v1.2.?");
 					Gui::PopFont();
 
 					Gui::PushFont(FontMain, GuiScaleI32_AtTarget(FontBaseSizes::Small));
-					Gui::TextUnformatted("- French, Spanish, & Russian locales, and Simplified Chinese revision by Expédic Habbet");
-					Gui::TextUnformatted("- Migration to xmake build system, SDL3 port, and MacOSX support by SteveXMH");
-					Gui::TextUnformatted("- Linux support by 熊谷 凌 / FurryR");
-					Gui::TextUnformatted("- (for the full change list, please refer to the commit history)");
+					Gui::TextUnformatted(u8"- Support #SUDDEN (simulating TJAP3 behavior)");
+					Gui::TextUnformatted(u8"- (for the full change list, please refer to the commit history)");
 					Gui::TextUnformatted("");
 					Gui::PopFont();
 					Gui::PopStyleColor();
@@ -516,32 +570,32 @@ namespace PeepoDrumKit
 					Gui::PopFont();
 
 					Gui::PushFont(FontMain, GuiScaleI32_AtTarget(FontBaseSizes::Small));
-					Gui::TextUnformatted("- Add the possibility to reorder difficulties by dragging difficulty tabs");
-					Gui::TextUnformatted("- Add support for STYLE: and #START P<n>");
-					Gui::TextUnformatted("- Add comparison mode to compare difficulties side-by-side");
-					Gui::TextUnformatted("- Add current #JPOSSCROLL position display on the judge mark");
-					Gui::TextUnformatted("- The gameplay lane border now show the visible region in simulators when in wide view");
-					Gui::TextUnformatted("- Add sound volume limiter and remove sound effects' play frequency limits");
-					Gui::TextUnformatted("- AdLibs are now shown semi-transparent instead of hidden");
-					Gui::TextUnformatted("- KaDon are now played with Don + Ka sounds instead of just Don");
-					Gui::TextUnformatted("- Balloon-type notes' pop count is now shown when they are being popped");
-					Gui::TextUnformatted("- Add “Buffer Frame Size” option for manually fixing audio distortion due to insufficient buffer size (in Settings → Audio Settings)");
-					Gui::TextUnformatted("- Add proper SENote assignment and the コ (Ko) SENote");
-					Gui::TextUnformatted("- Add Go-go time effect");
-					Gui::TextUnformatted("- Add support for editing any localized TITLE: and SUBTITLE: with custom locales");
-					Gui::TextUnformatted("- Fix #JPOSSCROLL's overlapping behavior (was not stopped by next #JPOSSCROLL as in simulators)");
-					Gui::TextUnformatted("- Add support for the Handed Don (A) and Handed Katsu (B) notes");
-					Gui::TextUnformatted("- Remove restriction of creating existing difficulties, for creating multiplayer charts and using comparison mode");
-					Gui::TextUnformatted("- Fix inaccurate time interval of balloon-type note popping sound");
-					Gui::TextUnformatted("- Add support for editing any unknown TJA headers");
-					Gui::TextUnformatted("- Add support for number-less NOTESDESIGNER: and file-scope usage of numbered NOTESDESIGNER headers");
-					Gui::TextUnformatted("- Fix notes in negative BPM were wrongly flipped horizontally and SENotes in positive BPM were wrongly rotated 180 degree");
-					Gui::TextUnformatted("- (the following are hotfixes)");
-					Gui::TextUnformatted("- Fix crash when player side and count numbers are too long");
-					Gui::TextUnformatted("- Fix compared lanes wrongly used selected lane's beat and time position if their timing commands differ");
-					Gui::TextUnformatted("- Fix flying notes moved with on-going #JPOSSCROLLs again due to reworking of #JPOSSCROLL in v1.2");
-					Gui::TextUnformatted("- Fix undefined default Chart Stats tab docking position since v1.1.1");
-					Gui::TextUnformatted("- (for the full change list, please refer to the commit history)");
+					Gui::TextUnformatted(u8"- Add the possibility to reorder difficulties by dragging difficulty tabs");
+					Gui::TextUnformatted(u8"- Add support for STYLE: and #START P<n>");
+					Gui::TextUnformatted(u8"- Add comparison mode to compare difficulties side-by-side");
+					Gui::TextUnformatted(u8"- Add current #JPOSSCROLL position display on the judge mark");
+					Gui::TextUnformatted(u8"- The gameplay lane border now show the visible region in simulators when in wide view");
+					Gui::TextUnformatted(u8"- Add sound volume limiter and remove sound effects' play frequency limits");
+					Gui::TextUnformatted(u8"- AdLibs are now shown semi-transparent instead of hidden");
+					Gui::TextUnformatted(u8"- KaDon are now played with Don + Ka sounds instead of just Don");
+					Gui::TextUnformatted(u8"- Balloon-type notes' pop count is now shown when they are being popped");
+					Gui::TextUnformatted(u8"- Add “Buffer Frame Size” option for manually fixing audio distortion due to insufficient buffer size (in Settings → Audio Settings)");
+					Gui::TextUnformatted(u8"- Add proper SENote assignment and the コ (Ko) SENote");
+					Gui::TextUnformatted(u8"- Add Go-go time effect");
+					Gui::TextUnformatted(u8"- Add support for editing any localized TITLE: and SUBTITLE: with custom locales");
+					Gui::TextUnformatted(u8"- Fix #JPOSSCROLL's overlapping behavior (was not stopped by next #JPOSSCROLL as in simulators)");
+					Gui::TextUnformatted(u8"- Add support for the Handed Don (A) and Handed Katsu (B) notes");
+					Gui::TextUnformatted(u8"- Remove restriction of creating existing difficulties, for creating multiplayer charts and using comparison mode");
+					Gui::TextUnformatted(u8"- Fix inaccurate time interval of balloon-type note popping sound");
+					Gui::TextUnformatted(u8"- Add support for editing any unknown TJA headers");
+					Gui::TextUnformatted(u8"- Add support for number-less NOTESDESIGNER: and file-scope usage of numbered NOTESDESIGNER headers");
+					Gui::TextUnformatted(u8"- Fix notes in negative BPM were wrongly flipped horizontally and SENotes in positive BPM were wrongly rotated 180 degree");
+					Gui::TextUnformatted(u8"- (the following are hotfixes)");
+					Gui::TextUnformatted(u8"- Fix crash when player side and count numbers are too long");
+					Gui::TextUnformatted(u8"- Fix compared lanes wrongly used selected lane's beat and time position if their timing commands differ");
+					Gui::TextUnformatted(u8"- Fix flying notes moved with on-going #JPOSSCROLLs again due to reworking of #JPOSSCROLL in v1.2");
+					Gui::TextUnformatted(u8"- Fix undefined default Chart Stats tab docking position since v1.1.1");
+					Gui::TextUnformatted(u8"- (for the full change list, please refer to the commit history)");
 					Gui::TextUnformatted("");
 					Gui::PopFont();
 					Gui::PopStyleColor();
@@ -555,25 +609,25 @@ namespace PeepoDrumKit
 					Gui::PopFont();
 
 					Gui::PushFont(FontMain, GuiScaleI32_AtTarget(FontBaseSizes::Small));
-					Gui::TextUnformatted("- Fix notes' and bar lines' position in #HBSCROLL and #BMSCROLL (when past judgement or around #BPMCHANGEs)");
-					Gui::TextUnformatted("- Fix #JPOSSCROLL distance (was 720px/lane instead of simulators' 948px/lane), direction 0 mode (failed to flip vertically)");
-					Gui::TextUnformatted("- Fix could not set #JPOSSCROLL duration in Chart Inspector");
-					Gui::TextUnformatted("- Improve compatibility and performance of chart importing and exporting");
-					Gui::TextUnformatted("- Widen allowed BPM's and time signature's input and effective range (negative allowed)");
-					Gui::TextUnformatted("- Add .ini localization; add zh-CN and zh-TW localizations");
-					Gui::TextUnformatted("- Fix displayed position of balloons and flying notes with non-positive #SCROLL");
-					Gui::TextUnformatted("- Add TaikoJiro2-like note display supporting complex-valued #SCROLL and stretching rolls with bar");
-					Gui::TextUnformatted("- Add the possibility to edit notes' and long events' end position by dragging their end when selected");
-					Gui::TextUnformatted("- #JPOSSCROLL is now visualized and editable as long event");
-					Gui::TextUnformatted("- Widen playback speed range to 10%–200%");
-					Gui::TextUnformatted("- Add Chart Stats tab");
-					Gui::TextUnformatted("- Tweak difficulty number display and remove star view for decimal");
-					Gui::TextUnformatted("- Add support of editing Tower charts and view Dan charts");
-					Gui::TextUnformatted("- Add “Insert at Selected Items”, the successor of “Selection to Scroll Changes” which applies to all chart events");
-					Gui::TextUnformatted("- Migrate to Dear ImGui 1.92.0-docking and solve missing font glyph issues");
-					Gui::TextUnformatted("- Add “Select to End of Chart”");
-					Gui::TextUnformatted("- Add advanced chart scale options, fix “missing notes after undo” problem when scaling");
-					Gui::TextUnformatted("- (for the full change list, please refer to the commit history)");
+					Gui::TextUnformatted(u8"- Fix notes' and bar lines' position in #HBSCROLL and #BMSCROLL (when past judgement or around #BPMCHANGEs)");
+					Gui::TextUnformatted(u8"- Fix #JPOSSCROLL distance (was 720px/lane instead of simulators' 948px/lane), direction 0 mode (failed to flip vertically)");
+					Gui::TextUnformatted(u8"- Fix could not set #JPOSSCROLL duration in Chart Inspector");
+					Gui::TextUnformatted(u8"- Improve compatibility and performance of chart importing and exporting");
+					Gui::TextUnformatted(u8"- Widen allowed BPM's and time signature's input and effective range (negative allowed)");
+					Gui::TextUnformatted(u8"- Add .ini localization; add zh-CN and zh-TW localizations");
+					Gui::TextUnformatted(u8"- Fix displayed position of balloons and flying notes with non-positive #SCROLL");
+					Gui::TextUnformatted(u8"- Add TaikoJiro2-like note display supporting complex-valued #SCROLL and stretching rolls with bar");
+					Gui::TextUnformatted(u8"- Add the possibility to edit notes' and long events' end position by dragging their end when selected");
+					Gui::TextUnformatted(u8"- #JPOSSCROLL is now visualized and editable as long event");
+					Gui::TextUnformatted(u8"- Widen playback speed range to 10%–200%");
+					Gui::TextUnformatted(u8"- Add Chart Stats tab");
+					Gui::TextUnformatted(u8"- Tweak difficulty number display and remove star view for decimal");
+					Gui::TextUnformatted(u8"- Add support of editing Tower charts and view Dan charts");
+					Gui::TextUnformatted(u8"- Add “Insert at Selected Items”, the successor of “Selection to Scroll Changes” which applies to all chart events");
+					Gui::TextUnformatted(u8"- Migrate to Dear ImGui 1.92.0-docking and solve missing font glyph issues");
+					Gui::TextUnformatted(u8"- Add “Select to End of Chart”");
+					Gui::TextUnformatted(u8"- Add advanced chart scale options, fix “missing notes after undo” problem when scaling");
+					Gui::TextUnformatted(u8"- (for the full change list, please refer to the commit history)");
 					Gui::TextUnformatted("");
 					Gui::PopFont();
 					Gui::PopStyleColor();
@@ -1042,6 +1096,136 @@ namespace PeepoDrumKit
 		Gui::PopFont();
 	}
 
+	using TempChartItem = ChartInspectorWindow::TempChartItem;
+
+	template <typename HintT = keep_deduced_t, typename GetF, typename SetF, typename ClampF,
+		typename DeducedT = std::invoke_result_t<GetF, const TempChartItem&, i32>,
+		typename T = decltype(keep_or_static_cast<HintT>(std::declval<DeducedT>())),
+		expect_type_t<std::invoke_result_t<SetF, TempChartItem&, T, i32>, void> = true,
+		expect_type_t<std::invoke_result_t<ClampF, T, i32>, T, DeducedT> = true>
+	static b8 SetPropertyMultiSelection(std::vector<TempChartItem>& SelectedItems, const MultiEditWidgetResult& widgetOut,
+		GetF&& getValue, SetF&& setValue, ClampF&& clampValue, i32 components = 1)
+	{
+		if (!(widgetOut.HasValueExact || widgetOut.HasValueIncrement))
+			return false;
+
+		b8 valueWasChanged = false;
+		for (i32 c = 0; c < components; ++c) {
+			if (widgetOut.HasValueExact & (1 << c)) {
+				for (auto& selectedItem : SelectedItems)
+					setValue(selectedItem, get<T[4]>(widgetOut.ValueExact)[c], c);
+				valueWasChanged = true;
+			} else if (widgetOut.HasValueIncrement & (1 << c)) {
+				for (auto& selectedItem : SelectedItems)
+					setValue(selectedItem, clampValue(T{ getValue(selectedItem, c) + get<T[4]>(widgetOut.ValueIncrement)[c] }, c), c);
+				valueWasChanged = true;
+			}
+		}
+		return valueWasChanged;
+	}
+
+	template <typename HintT = keep_deduced_t, typename GetF, typename SetF,
+		typename DeducedT = std::invoke_result_t<GetF, const TempChartItem&, i32>,
+		typename T = decltype(keep_or_static_cast<HintT>(std::declval<DeducedT>()))>
+	static b8 SetPropertyMultiSelection(std::vector<TempChartItem>& SelectedItems, const MultiEditWidgetParam& widgetIn, const MultiEditWidgetResult& widgetOut,
+		GetF&& getValue, SetF&& setValue)
+	{
+		if (widgetIn.EnableClamp) {
+			return SetPropertyMultiSelection<HintT>(SelectedItems, widgetOut, getValue, setValue,
+				[&](const T& v, i32 c) { return Clamp(v, get<T[4]>(widgetIn.ValueClampMin)[c], get<T[4]>(widgetIn.ValueClampMax)[c]); }, widgetIn.Components);
+		} else {
+			return SetPropertyMultiSelection<HintT>(SelectedItems, widgetOut, getValue, setValue,
+				[](auto&& v, i32) { return v; }, widgetIn.Components);
+		}
+	}
+
+	template <typename GetF>
+	constexpr auto getDefaultIsEqualValues(GetF&& getValue)
+	{
+		return [&](const TempChartItem& item, auto v, i32 c) { return ApproxmiatelySame(getValue(item, c), v); };
+	}
+
+	template <typename HintT = keep_deduced_t, typename GetF, typename SetF, typename EqualF,
+		typename DeducedT = std::invoke_result_t<GetF, const TempChartItem&, i32>,
+		typename T = decltype(keep_or_static_cast<HintT>(std::declval<DeducedT>())),
+		expect_type_t<std::invoke_result_t<SetF, TempChartItem&, T, i32>, void> = true,
+		expect_type_t<std::invoke_result_t<EqualF, const TempChartItem&, T, i32>, b8> = true>
+	static b8 DrawInterpolationProperty(std::string_view label, T step, T stepFast, b8 enableClamp, T minValue, T maxValue, cstr format,
+		std::vector<TempChartItem>& SelectedItems, b8 areAllValueTheSame,
+		GetF&& getValue, SetF&& setValue, EqualF&& isEqualValues, i32 component = 0)
+	{
+		// TODO: Maybe option to switch between Beat/Time interpolation modes (?)
+		static constexpr auto getT = [](const TempChartItem& item) -> f64 { return item.MemberValues.BeatStart().Ticks; };
+		static constexpr auto getInterpolatedValue = [](const TempChartItem& startItem, const TempChartItem& endItem, const TempChartItem& thisItem, const T& startValue, const T& endValue) -> T
+		{
+			return ConvertRange(getT(startItem), getT(endItem), startValue, endValue, getT(thisItem));
+		};
+
+		TempChartItem* startItem = !SelectedItems.empty() ? &SelectedItems.front() : nullptr;
+		TempChartItem* endItem = !SelectedItems.empty() ? &SelectedItems.back() : nullptr;
+		T inOutStartEnd[2] = {
+			static_cast<T>(startItem ? getValue(*startItem, component) : std::nan("")),
+			static_cast<T>(endItem ? getValue(*endItem, component) : std::nan("")),
+		};
+
+		const b8 isSelectionTooSmall = (SelectedItems.size() < 2);
+		b8 isSelectionAlreadyInterpolated = true;
+		if (!isSelectionTooSmall) {
+			for (const auto& thisItem : SelectedItems) {
+				if (!isEqualValues(thisItem, getInterpolatedValue(*startItem, *endItem, thisItem, inOutStartEnd[0], inOutStartEnd[1]), component))
+					isSelectionAlreadyInterpolated = false;
+			}
+		}
+
+		// NOTE: Invalid selection		-> "..." dummied out
+		//		 All the same			-> "=" marker
+		//		 Mixed values			-> "()" values
+		//		 Already interpolated	-> regular values
+		char previewBuffersStartEnd[2][64];
+		cstr previewStrings[2] = { nullptr, nullptr };
+		if (isSelectionTooSmall) {
+			previewStrings[0] = "...";
+			previewStrings[1] = "...";
+		} else if (areAllValueTheSame) {
+			previewStrings[1] = "=";
+		} else if (!isSelectionAlreadyInterpolated) {
+			for (int i = 0; i < ArrayCountI32(previewStrings); ++i) {
+				previewStrings[i] = previewBuffersStartEnd[i];
+				strcpy_s(previewBuffersStartEnd[i], "(");
+				sprintf_s(previewBuffersStartEnd[i] + 1, sizeof(previewBuffersStartEnd[i]) - 1, format, inOutStartEnd[i]);
+				strcat_s(previewBuffersStartEnd[i], ")");
+			}
+		}
+
+		Gui::BeginDisabled(isSelectionTooSmall);
+		b8 valueWasChanged = false;
+		if (GuiPropertyRangeInterpolationEditWidget(label, inOutStartEnd, step, stepFast, enableClamp, minValue, maxValue, format, previewStrings)) {
+			for (auto& thisItem : SelectedItems)
+				setValue(thisItem, getInterpolatedValue(*startItem, *endItem, thisItem, inOutStartEnd[0], inOutStartEnd[1]), component);
+			valueWasChanged = true;
+		}
+		Gui::EndDisabled();
+		return valueWasChanged;
+	}
+
+	template <typename HintT = keep_deduced_t, typename GetF, typename SetF, typename EqualF,
+		typename DeducedT = std::invoke_result_t<GetF, const TempChartItem&, i32>,
+		typename T = decltype(keep_or_static_cast<HintT>(std::declval<DeducedT>()))>
+	static b8 DrawInterpolationProperty(std::string_view label, const MultiEditWidgetParam& widgetIn, std::vector<TempChartItem>& SelectedItems,
+		GetF&& getValue, SetF&& setValue, EqualF&& equalValues, i32 component = 0)
+	{
+		return DrawInterpolationProperty<HintT>(label, get<T[4]>(widgetIn.ButtonStep)[component], get<T[4]>(widgetIn.ButtonStepFast)[component],
+			widgetIn.EnableClamp, get<T[4]>(widgetIn.ValueClampMin)[component], get<T[4]>(widgetIn.ValueClampMax)[component], widgetIn.FormatString,
+			SelectedItems, !widgetIn.HasMixedValues, getValue, setValue, equalValues, component);
+	}
+
+	template <typename HintT = keep_deduced_t, typename GetF, typename SetF>
+	static b8 DrawInterpolationProperty(std::string_view label, const MultiEditWidgetParam& widgetIn, std::vector<TempChartItem>& SelectedItems,
+		GetF&& getValue, SetF&& setValue, i32 component = 0)
+	{
+		return DrawInterpolationProperty<HintT>(label, widgetIn, SelectedItems, getValue, setValue, getDefaultIsEqualValues(getValue), component);
+	}
+
 	void ChartInspectorWindow::DrawGui(ChartContext& context)
 	{
 		Gui::UpdateSmoothScrollWindow();
@@ -1053,6 +1237,8 @@ namespace PeepoDrumKit
 		if (Gui::CollapsingHeader(UI_Str("DETAILS_INSPECTOR_SELECTED_ITEMS"), ImGuiTreeNodeFlags_DefaultOpen))
 		{
 			defer { SelectedItems.clear(); };
+
+			// fetch values from events
 			BeatSortedForwardIterator<TempoChange> scrollTempoChangeIt {};
 			ForEachSelectedChartItem(course, [&](const ForEachChartItemData& it)
 			{
@@ -1074,6 +1260,7 @@ namespace PeepoDrumKit
 					out.BaseScrollTempo = TempoOrDefault(scrollTempoChangeIt.Next(course.TempoMap.Tempo.Sorted, out.MemberValues.BeatStart()));
 			});
 
+			// get event count
 			GenericMemberFlags commonAvailableMemberFlags = SelectedItems.empty() ? GenericMemberFlags_None : GenericMemberFlags_All;
 			GenericList commonListType = SelectedItems.empty() ? GenericList::Count : SelectedItems[0].List;
 			size_t perListSelectionCounts[EnumCount<GenericList>] = {};
@@ -1088,17 +1275,25 @@ namespace PeepoDrumKit
 				}
 			}
 
+			// get value range statistics
 			GenericMemberFlags commonEqualMemberFlags = commonAvailableMemberFlags;
 			AllGenericMembersUnionArray sharedValues = {};
 			AllGenericMembersUnionArray mixedValuesMin = {};
 			AllGenericMembersUnionArray mixedValuesMax = {};
+			Tempo sharedScrollTempo = {};
+			Tempo mixedScrollTempoMin = {};
+			Tempo mixedScrollTempoMax = {};
+			b8 isAnyRegularNoteSelected = false, isAnyDrumrollNoteSelected = false, isAnyBalloonNoteSelected = false;
+			b8 areAllSelectedNotesSmall = true, areAllSelectedNotesBig = true, areAllSelectedNotesHand = true;
+			b8 perNoteTypeHasAtLeastOneSelected[EnumCount<NoteType>] = {};
+			b8 isAnyTimeSignatureInvalid = false;
 			if (!SelectedItems.empty())
 			{
 				for (GenericMember member = {}; member < GenericMember::Count; IncrementEnum(member))
 				{
-					sharedValues[member] = SelectedItems[0].MemberValues[member];
-					mixedValuesMin[member] = sharedValues[member];
-					mixedValuesMax[member] = sharedValues[member];
+					mixedValuesMin[member] = mixedValuesMax[member] = sharedValues[member] = SelectedItems[0].MemberValues[member];
+					if (member == GenericMember::F32_ScrollSpeed)
+						mixedScrollTempoMin = mixedScrollTempoMax = sharedScrollTempo = ScrollSpeedToTempo(sharedValues[member].CPX.GetRealPart(), SelectedItems[0].BaseScrollTempo);
 				}
 
 				for (const TempChartItem& item : SelectedItems)
@@ -1113,22 +1308,55 @@ namespace PeepoDrumKit
 						auto& max = mixedValuesMax[member];
 						switch (member)
 						{
-						case GenericMember::B8_IsSelected: { /* ... */ } break;
-						case GenericMember::B8_BarLineVisible: { /* ... */ } break;
-						case GenericMember::I16_BalloonPopCount: { min.I16 = Min(min.I16, v.I16); max.I16 = Max(max.I16, v.I16); } break;
-						case GenericMember::F32_ScrollSpeed: {
+						case GenericMember::B8_IsSelected:
+						case GenericMember::B8_BarLineVisible:
+						case GenericMember::I16_BalloonPopCount:
+						case GenericMember::Beat_Start:
+						case GenericMember::Beat_Duration:
+						case GenericMember::Time_Offset:
+						case GenericMember::F32_JPOSScrollDuration:
+						case GenericMember::Time_AppearanceOffset:
+						case GenericMember::Time_MovementOffset:
+						case GenericMember::B8_SuddenHideRoll:
+						{
+							ApplySingleGenericMember(member,
+								[&](auto&& typedV, auto&& typedMin, auto&& typedMax)
+								{
+									if constexpr (!expect_type_v<decltype(typedV), b8, i16, f32, Beat, Time>) {
+										return false;
+									} else {
+										typedMin = Min(typedMin, typedV);
+										typedMax = Max(typedMax, typedV);
+										return true;
+									}
+								}, false, false,
+								v, min, max);
+						} break;
+						case GenericMember::F32_ScrollSpeed:
+						case GenericMember::F32_JPOSScroll:
+						{
 							min.CPX.SetRealPart(Min(min.CPX.GetRealPart(), v.CPX.GetRealPart()));
 							min.CPX.SetImaginaryPart(Min(min.CPX.GetImaginaryPart(), v.CPX.GetImaginaryPart()));
 							max.CPX.SetRealPart(Max(max.CPX.GetRealPart(), v.CPX.GetRealPart()));
 							max.CPX.SetImaginaryPart(Max(max.CPX.GetImaginaryPart(), v.CPX.GetImaginaryPart()));
+							if (member == GenericMember::F32_ScrollSpeed) {
+								Tempo vTempo = ScrollSpeedToTempo(v.CPX.GetRealPart(), item.BaseScrollTempo);
+								mixedScrollTempoMin.BPM = Min(mixedScrollTempoMin.BPM, vTempo.BPM);
+								mixedScrollTempoMax.BPM = Max(mixedScrollTempoMax.BPM, vTempo.BPM);
+							}
 						} break;
-						case GenericMember::Beat_Start: { min.Beat = Min(min.Beat, v.Beat); max.Beat = Max(max.Beat, v.Beat); } break;
-						case GenericMember::Beat_Duration: { min.Beat = Min(min.Beat, v.Beat); max.Beat = Max(max.Beat, v.Beat); } break;
-						case GenericMember::Time_Offset: { min.Time = Min(min.Time, v.Time); max.Time = Max(max.Time, v.Time); } break;
 						case GenericMember::NoteType_V:
 						{
 							min.NoteType = static_cast<NoteType>(Min(EnumToIndex(min.NoteType), EnumToIndex(v.NoteType)));
 							max.NoteType = static_cast<NoteType>(Max(EnumToIndex(max.NoteType), EnumToIndex(v.NoteType)));
+
+							isAnyRegularNoteSelected |= IsRegularNote(v.NoteType);
+							isAnyDrumrollNoteSelected |= IsDrumrollNote(v.NoteType);
+							isAnyBalloonNoteSelected |= IsBalloonNote(v.NoteType);
+							areAllSelectedNotesSmall &= IsSmallNote(v.NoteType);
+							areAllSelectedNotesBig &= IsBigNote(v.NoteType);
+							areAllSelectedNotesHand &= IsHandNote(v.NoteType);
+							perNoteTypeHasAtLeastOneSelected[EnumToIndex(v.NoteType)] = true;
 						} break;
 						case GenericMember::Tempo_V: { min.Tempo.BPM = Min(min.Tempo.BPM, v.Tempo.BPM); max.Tempo.BPM = Max(max.Tempo.BPM, v.Tempo.BPM); } break;
 						case GenericMember::TimeSignature_V:
@@ -1137,11 +1365,10 @@ namespace PeepoDrumKit
 							max.TimeSignature.Numerator = Max(max.TimeSignature.Numerator, v.TimeSignature.Numerator);
 							min.TimeSignature.Denominator = Min(min.TimeSignature.Denominator, v.TimeSignature.Denominator);
 							max.TimeSignature.Denominator = Max(max.TimeSignature.Denominator, v.TimeSignature.Denominator);
+							isAnyTimeSignatureInvalid |= !IsTimeSignatureSupported(v.TimeSignature);
 						} break;
 						case GenericMember::CStr_Lyric: { /* ... */ } break;
 						case GenericMember::I8_ScrollType: { /* ... */ } break;
-						case GenericMember::F32_JPOSScroll: { /* ... */ } break;
-						case GenericMember::F32_JPOSScrollDuration: { /* ... */ } break;
 						default: assert(false); break;
 						}
 					}
@@ -1163,7 +1390,7 @@ namespace PeepoDrumKit
 			{
 				if (Gui::Property::BeginTable(ImGuiTableFlags_BordersInner))
 				{
-					const cstr listTypeNames[] = { UI_Str("SELECTED_EVENTS_TEMPOS"), UI_Str("SELECTED_EVENTS_TIME_SIGNATURES"), UI_Str("EVENT_NOTES"), UI_Str("EVENT_NOTES"), UI_Str("EVENT_NOTES"), UI_Str("SELECTED_EVENTS_SCROLL_SPEEDS"), UI_Str("SELECTED_EVENTS_BAR_LINE_VISIBILITIES"), UI_Str("SELECTED_EVENTS_GO_GO_RANGES"), UI_Str("EVENT_LYRICS"), UI_Str("SELECTED_EVENTS_SCROLL_TYPES"), UI_Str("SELECTED_EVENTS_JPOS_SCROLLS"), };
+					const cstr listTypeNames[] = { UI_Str("SELECTED_EVENTS_TEMPOS"), UI_Str("SELECTED_EVENTS_TIME_SIGNATURES"), UI_Str("EVENT_NOTES"), UI_Str("EVENT_NOTES"), UI_Str("EVENT_NOTES"), UI_Str("SELECTED_EVENTS_SCROLL_SPEEDS"), UI_Str("SELECTED_EVENTS_BAR_LINE_VISIBILITIES"), UI_Str("SELECTED_EVENTS_GO_GO_RANGES"), UI_Str("EVENT_LYRICS"), UI_Str("SELECTED_EVENTS_SCROLL_TYPES"), UI_Str("SELECTED_EVENTS_JPOS_SCROLLS"), UI_Str("SELECTED_EVENTS_SUDDEN"), };
 					static_assert(ArrayCount(listTypeNames) == EnumCount<GenericList>);
 
 					Gui::Property::Property([&]
@@ -1201,9 +1428,9 @@ namespace PeepoDrumKit
 									continue;
 
 								char buttonName[64];
-								snprintf(buttonName, sizeof(buttonName), "[ %s ]  x%zu", listTypeNames[EnumToIndex(list)], perListSelectionCounts[EnumToIndex(list)]);
-								if (list == GenericList::Notes_Master) { strncat(buttonName, " (Master)", sizeof(buttonName) - strlen(buttonName) - 1); }
-								if (list == GenericList::Notes_Expert) { strncat(buttonName, " (Expert)", sizeof(buttonName) - strlen(buttonName) - 1); }
+								sprintf_s(buttonName, "[ %s ]  x%zu", listTypeNames[EnumToIndex(list)], perListSelectionCounts[EnumToIndex(list)]);
+								if (list == GenericList::Notes_Master) { strcat_s(buttonName, " (Master)"); }
+								if (list == GenericList::Notes_Expert) { strcat_s(buttonName, " (Expert)"); }
 
 								Gui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, { 0.0f, 0.0f });
 								Gui::PushStyleColor(ImGuiCol_Button, Gui::GetColorU32(ImGuiCol_FrameBg));
@@ -1227,10 +1454,13 @@ namespace PeepoDrumKit
 					GenericMemberFlags outModifiedMembers = GenericMemberFlags_None;
 					for (const GenericMember member : { GenericMember::NoteType_V, GenericMember::I16_BalloonPopCount, GenericMember::Time_Offset,
 						GenericMember::Tempo_V, GenericMember::TimeSignature_V, GenericMember::F32_ScrollSpeed, GenericMember::B8_BarLineVisible,
-						GenericMember::I8_ScrollType, GenericMember::F32_JPOSScroll, GenericMember::F32_JPOSScrollDuration})
-					{
+						GenericMember::I8_ScrollType, GenericMember::F32_JPOSScroll, GenericMember::F32_JPOSScrollDuration,
+						GenericMember::Time_AppearanceOffset, GenericMember::Time_MovementOffset, GenericMember::B8_SuddenHideRoll,
+						}) {
 						if (!(commonAvailableMemberFlags & EnumToFlag(member)))
 							continue;
+
+						char labelBuffer[128];
 
 						b8 valueWasChanged = false;
 						switch (member)
@@ -1258,10 +1488,7 @@ namespace PeepoDrumKit
 						} break;
 						case GenericMember::I16_BalloonPopCount:
 						{
-							b8 isAnyBalloonNoteSelected = false;
-							for (const auto& selectedItem : SelectedItems)
-								isAnyBalloonNoteSelected |= IsBalloonNote(selectedItem.MemberValues.NoteType());
-
+							cstr label = UI_Str("EVENT_PROP_BALLOON_POP_COUNT");
 							MultiEditWidgetParam widgetIn = {};
 							widgetIn.DataType = ImGuiDataType_S16;
 							widgetIn.Value.I16 = sharedValues.BalloonPopCount();
@@ -1271,43 +1498,39 @@ namespace PeepoDrumKit
 							widgetIn.EnableStepButtons = true;
 							widgetIn.ButtonStep.I16 = 1;
 							widgetIn.ButtonStepFast.I16 = 4;
-							widgetIn.EnableDragLabel = false;
 							widgetIn.FormatString = "%d";
 							widgetIn.EnableDragLabel = true;
 							widgetIn.DragLabelSpeed = 0.05f;
+							widgetIn.EnableClamp = true;
+							widgetIn.ValueClampMin.I16 = MinBalloonCount;
+							widgetIn.ValueClampMax.I16 = MaxBalloonCount;
 							Gui::BeginDisabled(!isAnyBalloonNoteSelected);
-							const MultiEditWidgetResult widgetOut = GuiPropertyMultiSelectionEditWidget(UI_Str("EVENT_PROP_BALLOON_POP_COUNT"), widgetIn);
+							const MultiEditWidgetResult widgetOut = GuiPropertyMultiSelectionEditWidget(label, widgetIn);
 							Gui::EndDisabled();
 
-							if (widgetOut.HasValueExact)
-							{
-								for (auto& selectedItem : SelectedItems)
-								{
-									if (IsBalloonNote(selectedItem.MemberValues.NoteType()))
-										selectedItem.MemberValues.BalloonPopCount() = Clamp(widgetOut.ValueExact.I16, MinBalloonCount, MaxBalloonCount);
-								}
+							auto getV = [](const TempChartItem& item, ...) { return item.MemberValues.BalloonPopCount(); };
+							auto setV = [](TempChartItem& item, i16 v, ...) { if (IsBalloonNote(item.MemberValues.NoteType())) item.MemberValues.BalloonPopCount() = v; };
+							if (SetPropertyMultiSelection(SelectedItems, widgetIn, widgetOut, getV, setV))
 								valueWasChanged = true;
-							}
-							else if (widgetOut.HasValueIncrement)
-							{
-								for (auto& selectedItem : SelectedItems)
-								{
-									if (IsBalloonNote(selectedItem.MemberValues.NoteType()))
-										selectedItem.MemberValues.BalloonPopCount() = Clamp(static_cast<i16>(selectedItem.MemberValues.BalloonPopCount() + widgetOut.ValueIncrement.I16), MinBalloonCount, MaxBalloonCount);
-								}
+							sprintf_s(labelBuffer, UI_Str("EVENT_PROP_INTERPOLATE_%s"), label);
+							if (DrawInterpolationProperty(labelBuffer, widgetIn, SelectedItems, getV, setV))
 								valueWasChanged = true;
-							}
 						} break;
 						case GenericMember::F32_JPOSScroll:
 						{
-							b8 areAllJPOSScrollMovesTheSame = (commonEqualMemberFlags & EnumToFlag(member));
+							cstr labels[2] = { UI_Str("EVENT_PROP_JPOS_SCROLL_MOVE"), UI_Str("EVENT_PROP_VERTICAL_JPOS_SCROLL_MOVE") };
+							MultiEditWidgetParam widgetIns[2] = {};
+							std::function<f32(const TempChartItem&, i32)> getVs[2] = {};
+							std::function<void(TempChartItem&, f32, i32)> setVs[2] = {};
 
 							for (size_t i = 0; i < 2; i++)
 							{
-								MultiEditWidgetParam widgetIn = {};
+								auto& widgetIn = widgetIns[i];
 								widgetIn.EnableStepButtons = true;
 								if (i == 0)
 								{
+									getVs[i] = [](const TempChartItem& item, ...) { return item.MemberValues.JPOSScrollMove().GetRealPart(); };
+									setVs[i] = [](TempChartItem& item, auto v, ...) { item.MemberValues.JPOSScrollMove().SetRealPart(v); };
 									widgetIn.Value.F32 = sharedValues.JPOSScrollMove().GetRealPart();
 									widgetIn.HasMixedValues = !(commonEqualMemberFlags & EnumToFlag(member));
 									widgetIn.MixedValuesMin.F32 = mixedValuesMin.JPOSScrollMove().GetRealPart();
@@ -1321,6 +1544,8 @@ namespace PeepoDrumKit
 									widgetIn.ValueClampMax.F32 = MaxJPOSScrollMove;
 								}
 								else {
+									getVs[i] = [](const TempChartItem& item, ...) { return item.MemberValues.JPOSScrollMove().GetImaginaryPart(); };
+									setVs[i] = [](TempChartItem& item, f32 v, ...) { item.MemberValues.JPOSScrollMove().SetImaginaryPart(v); };
 									widgetIn.Value.F32 = sharedValues.JPOSScrollMove().GetImaginaryPart();
 									widgetIn.HasMixedValues = !(commonEqualMemberFlags & EnumToFlag(member));
 									widgetIn.MixedValuesMin.F32 = mixedValuesMin.JPOSScrollMove().GetImaginaryPart();
@@ -1334,118 +1559,106 @@ namespace PeepoDrumKit
 									widgetIn.ValueClampMax.F32 = MaxJPOSScrollMove;
 								}
 
-								const MultiEditWidgetResult widgetOut = GuiPropertyMultiSelectionEditWidget(
-									(i == 0)
-									? UI_Str("EVENT_PROP_JPOS_SCROLL_MOVE")
-									: UI_Str("EVENT_PROP_VERTICAL_JPOS_SCROLL_MOVE")
-									, widgetIn);
-								if (widgetOut.HasValueExact)
-								{
-									for (auto& selectedItem : SelectedItems)
-									{
-										if (i == 0)
-											selectedItem.MemberValues.JPOSScrollMove().SetRealPart(widgetOut.ValueExact.F32);
-										else
-											selectedItem.MemberValues.JPOSScrollMove().SetImaginaryPart(widgetOut.ValueExact.F32);
-									}
+								const MultiEditWidgetResult widgetOut = GuiPropertyMultiSelectionEditWidget(labels[i], widgetIn);
+								if (SetPropertyMultiSelection(SelectedItems, widgetIn, widgetOut, getVs[i], setVs[i]))
 									valueWasChanged = true;
-								}
-								else if (widgetOut.HasValueIncrement)
-								{
-									for (auto& selectedItem : SelectedItems)
-									{
-										if (i == 0)
-											selectedItem.MemberValues.JPOSScrollMove().SetRealPart(Clamp(selectedItem.MemberValues.JPOSScrollMove().GetRealPart() + widgetOut.ValueIncrement.F32, MinJPOSScrollMove, MaxJPOSScrollMove));
-										else
-											selectedItem.MemberValues.JPOSScrollMove().SetImaginaryPart(Clamp(selectedItem.MemberValues.JPOSScrollMove().GetImaginaryPart() + widgetOut.ValueIncrement.F32, MinJPOSScrollMove, MaxJPOSScrollMove));
-									}
+							}
+							for (size_t i = 0; i < 2; i++) {
+								sprintf_s(labelBuffer, UI_Str("EVENT_PROP_INTERPOLATE_%s"), labels[i]);
+								if (DrawInterpolationProperty(labelBuffer, widgetIns[i], SelectedItems, getVs[i], setVs[i]))
 									valueWasChanged = true;
-								}
 							}
 						} break;
 						case GenericMember::F32_JPOSScrollDuration:
 						{
-							b8 areAllJPOSScrollDurationsTheSame = true;
-							f32 commonDuration = 0.f, minDuration = 0.f, maxDuration = 0.f;
-							for (const auto& selectedItem : SelectedItems)
-							{
-								const f32 duration = selectedItem.MemberValues.JPOSScrollDuration();
-								if (&selectedItem == &SelectedItems[0])
-								{
-									commonDuration = minDuration = maxDuration = duration;
-								}
-								else
-								{
-									minDuration = Min(minDuration, duration);
-									maxDuration = Max(maxDuration, duration);
-									areAllJPOSScrollDurationsTheSame &= ApproxmiatelySame(duration, commonDuration, 0.001f);
-								}
-							}
+							cstr label = UI_Str("EVENT_PROP_JPOS_SCROLL_DURATION");
+							MultiEditWidgetParam widgetIn = {};
+							widgetIn.EnableStepButtons = true;
+							widgetIn.Value.F32 = sharedValues.JPOSScrollDuration();
+							widgetIn.HasMixedValues = !(commonEqualMemberFlags & EnumToFlag(member));
+							widgetIn.MixedValuesMin.F32 = mixedValuesMin.JPOSScrollDuration();
+							widgetIn.MixedValuesMax.F32 = mixedValuesMax.JPOSScrollDuration();
+							widgetIn.ButtonStep.F32 = 0.1f;
+							widgetIn.ButtonStepFast.F32 = 0.5f;
+							widgetIn.DragLabelSpeed = 0.005f;
+							widgetIn.FormatString = "%gs";
+							widgetIn.EnableClamp = true;
+							widgetIn.ValueClampMin.F32 = MinJPOSScrollDuration;
+							widgetIn.ValueClampMax.F32 = MaxJPOSScrollDuration;
 
-							{
-								MultiEditWidgetParam widgetIn = {};
-								widgetIn.EnableStepButtons = true;
-								widgetIn.Value.F32 = commonDuration;
-								widgetIn.HasMixedValues = !areAllJPOSScrollDurationsTheSame;
-								widgetIn.MixedValuesMin.F32 = minDuration;
-								widgetIn.MixedValuesMax.F32 = maxDuration;
-								widgetIn.ButtonStep.F32 = 0.1f;
-								widgetIn.ButtonStepFast.F32 = 0.5f;
-								widgetIn.DragLabelSpeed = 0.005f;
-								widgetIn.FormatString = "%gs";
-								widgetIn.EnableClamp = true;
-								widgetIn.ValueClampMin.F32 = MinJPOSScrollDuration;
-								widgetIn.ValueClampMax.F32 = MaxJPOSScrollDuration;
+							const MultiEditWidgetResult widgetOut = GuiPropertyMultiSelectionEditWidget(label, widgetIn);
+							auto getV = [](const TempChartItem& item, ...) { return item.MemberValues.JPOSScrollDuration(); };
+							auto setV = [](TempChartItem& item, f32 v, ...) { item.MemberValues.JPOSScrollDuration() = v; };
+							if (SetPropertyMultiSelection(SelectedItems, widgetIn, widgetOut, getV, setV))
+								valueWasChanged = true;
+							sprintf_s(labelBuffer, UI_Str("EVENT_PROP_INTERPOLATE_%s"), label);
+							if (DrawInterpolationProperty(labelBuffer, widgetIn, SelectedItems, getV, setV))
+								valueWasChanged = true;
+						} break;
+						case GenericMember::Time_AppearanceOffset:
+						case GenericMember::Time_MovementOffset:
+						{
+							cstr label = (member == GenericMember::Time_AppearanceOffset) ? UI_Str("EVENT_PROP_SUDDEN_APPEARANCE_OFFSET") : UI_Str("EVENT_PROP_SUDDEN_MOVEMENT_OFFSET");
+							MultiEditWidgetParam widgetIn = {};
+							widgetIn.EnableStepButtons = true;
+							widgetIn.Value.F32 = GetOrEmpty<Time>(member, sharedValues).ToSec_F32();
+							widgetIn.HasMixedValues = !(commonEqualMemberFlags & EnumToFlag(member));
+							widgetIn.MixedValuesMin.F32 = GetOrEmpty<Time>(member, mixedValuesMin).ToSec_F32();
+							widgetIn.MixedValuesMax.F32 = GetOrEmpty<Time>(member, mixedValuesMax).ToSec_F32();
+							widgetIn.ButtonStep.F32 = 0.1f;
+							widgetIn.ButtonStepFast.F32 = 0.5f;
+							widgetIn.DragLabelSpeed = 0.005f;
+							widgetIn.FormatString = "%gs";
+							widgetIn.EnableClamp = false;
 
-								const MultiEditWidgetResult widgetOut = GuiPropertyMultiSelectionEditWidget(
-									UI_Str("EVENT_PROP_JPOS_SCROLL_DURATION"),
-									widgetIn);
-								if (widgetOut.HasValueExact)
-								{
+							const MultiEditWidgetResult widgetOut = GuiPropertyMultiSelectionEditWidget(label, widgetIn);
+							auto getV = [&](const TempChartItem& item, ...) { return GetOrEmpty<Time>(member, item.MemberValues).ToSec_F32(); };
+							auto setV = [&](TempChartItem& item, f32 v, ...) { TrySet(item.MemberValues, member, Time::FromSec(v)); };
+							if (SetPropertyMultiSelection(SelectedItems, widgetIn, widgetOut, getV, setV))
+								valueWasChanged = true;
+							sprintf_s(labelBuffer, UI_Str("EVENT_PROP_INTERPOLATE_%s"), label);
+							if (DrawInterpolationProperty(labelBuffer, widgetIn, SelectedItems, getV, setV))
+								valueWasChanged = true;
+						} break;
+						case GenericMember::B8_SuddenHideRoll:
+						{
+							Gui::Property::PropertyTextValueFunc(UI_Str("EVENT_PROP_SUDDEN_HIDE_ROLL"), [&]
+							{
+								auto v = sharedValues.SuddenHideRoll();
+
+								Gui::PushItemFlag(ImGuiItemFlags_MixedValue, !(commonEqualMemberFlags& EnumToFlag(member)));
+								Gui::PushItemWidth(-1.0f);
+								if (Gui::Checkbox("##SuddenHideRoll", &v)) {
 									for (auto& selectedItem : SelectedItems)
-									{
-										selectedItem.MemberValues.JPOSScrollDuration() = widgetOut.ValueExact.F32;
-									}
+										selectedItem.MemberValues.SuddenHideRoll() = v;
 									valueWasChanged = true;
+									disableChangePropertiesCommandMerge = true;
 								}
-								else if (widgetOut.HasValueIncrement)
-								{
-									for (auto& selectedItem : SelectedItems)
-									{
-										selectedItem.MemberValues.JPOSScrollDuration() = Clamp(selectedItem.MemberValues.JPOSScrollDuration() + widgetOut.ValueIncrement.F32, MinJPOSScrollDuration, MaxJPOSScrollDuration);
-									}
-									valueWasChanged = true;
-								}
-							}
+								Gui::PopItemFlag();
+								Gui::SetItemTooltip(UI_Str("EVENT_PROP_SUDDEN_HIDE_ROLL_TOOLTIPS"));
+							});
 						} break;
 						case GenericMember::F32_ScrollSpeed:
 						{
 							b8 areAllScrollSpeedsTheSame = (commonEqualMemberFlags & EnumToFlag(member));
-							b8 areAllScrollTemposTheSame = true;
-							Tempo commonScrollTempo = {}, minScrollTempo {}, maxScrollTempo {};
-							for (const auto& selectedItem : SelectedItems)
-							{
-								const Tempo scrollTempo = ScrollSpeedToTempo(selectedItem.MemberValues.ScrollSpeed().GetRealPart(), selectedItem.BaseScrollTempo);
-								if (&selectedItem == &SelectedItems[0])
-								{
-									commonScrollTempo = minScrollTempo = maxScrollTempo = scrollTempo;
-								}
-								else
-								{
-									minScrollTempo.BPM = Min(minScrollTempo.BPM, scrollTempo.BPM);
-									maxScrollTempo.BPM = Max(maxScrollTempo.BPM, scrollTempo.BPM);
-									areAllScrollTemposTheSame &= ApproxmiatelySame(scrollTempo.BPM, commonScrollTempo.BPM, 0.001f);
-								}
-							}
+							b8 areAllScrollTemposTheSame = (mixedScrollTempoMin.BPM == mixedScrollTempoMax.BPM);
+							cstr labels[3] = { UI_Str("EVENT_SCROLL_SPEED"), UI_Str("EVENT_PROP_VERTICAL_SCROLL_SPEED"), UI_Str("EVENT_PROP_SCROLL_SPEED_TEMPO") };
+							MultiEditWidgetParam widgetIns[3]  = {};
+							std::function<f32(const TempChartItem&, i32)> getVs[3] = {};
+							std::function<void(TempChartItem&, f32, i32)> setVs[3] = {};
+							std::function<b8(const TempChartItem& item, f32 v, i32)> equalVss[3] = {};
 
 							for (size_t i = 0; i < 3; i++)
 							{
-								MultiEditWidgetParam widgetIn = {};
+								auto& widgetIn = widgetIns[i];
 								widgetIn.EnableStepButtons = true;
 								if (i == 0)
 								{
+									getVs[i] = [](const TempChartItem& item, ...) { return item.MemberValues.ScrollSpeed().GetRealPart(); };
+									setVs[i] = [](TempChartItem& item, f32 v, ...) { item.MemberValues.ScrollSpeed().SetRealPart(v); };
+									equalVss[i] = getDefaultIsEqualValues(getVs[i]);
 									widgetIn.Value.F32 = sharedValues.ScrollSpeed().GetRealPart();
-									widgetIn.HasMixedValues = !(commonEqualMemberFlags & EnumToFlag(member));
+									widgetIn.HasMixedValues = !areAllScrollSpeedsTheSame;
 									widgetIn.MixedValuesMin.F32 = mixedValuesMin.ScrollSpeed().GetRealPart();
 									widgetIn.MixedValuesMax.F32 = mixedValuesMax.ScrollSpeed().GetRealPart();
 									widgetIn.ButtonStep.F32 = 0.1f;
@@ -1457,8 +1670,11 @@ namespace PeepoDrumKit
 									widgetIn.ValueClampMax.F32 = MaxScrollSpeed;
 								}
 								else if (i == 1) {
+									getVs[i] = [](const TempChartItem& item, ...) { return item.MemberValues.ScrollSpeed().GetImaginaryPart(); };
+									setVs[i] = [](TempChartItem& item, f32 v, ...) { item.MemberValues.ScrollSpeed().SetImaginaryPart(v); };
+									equalVss[i] = getDefaultIsEqualValues(getVs[i]);
 									widgetIn.Value.F32 = sharedValues.ScrollSpeed().GetImaginaryPart();
-									widgetIn.HasMixedValues = !(commonEqualMemberFlags & EnumToFlag(member));
+									widgetIn.HasMixedValues = !areAllScrollSpeedsTheSame;
 									widgetIn.MixedValuesMin.F32 = mixedValuesMin.ScrollSpeed().GetImaginaryPart();
 									widgetIn.MixedValuesMax.F32 = mixedValuesMax.ScrollSpeed().GetImaginaryPart();
 									widgetIn.ButtonStep.F32 = 0.1f;
@@ -1471,155 +1687,35 @@ namespace PeepoDrumKit
 								}
 								else
 								{
-									widgetIn.Value.F32 = commonScrollTempo.BPM;
+									getVs[i] = [](const TempChartItem& item, ...) { return ScrollSpeedToTempo(item.MemberValues.ScrollSpeed().GetRealPart(), item.BaseScrollTempo).BPM; };
+									setVs[i] = [](TempChartItem& item, f32 v, ...) { item.MemberValues.ScrollSpeed().SetRealPart(ScrollTempoToSpeed(Tempo(v), item.BaseScrollTempo)); };
+									equalVss[i] = [](const TempChartItem& item, f32 v, i32) { return ApproxmiatelySame(item.MemberValues.ScrollSpeed().GetRealPart(), ScrollTempoToSpeed(Tempo(v), item.BaseScrollTempo)); };
+									widgetIn.Value.F32 = sharedScrollTempo.BPM;
 									widgetIn.HasMixedValues = !areAllScrollTemposTheSame;
-									widgetIn.MixedValuesMin.F32 = minScrollTempo.BPM;
-									widgetIn.MixedValuesMax.F32 = maxScrollTempo.BPM;
+									widgetIn.MixedValuesMin.F32 = mixedScrollTempoMin.BPM;
+									widgetIn.MixedValuesMax.F32 = mixedScrollTempoMax.BPM;
 									widgetIn.ButtonStep.F32 = 1.0f;
 									widgetIn.ButtonStepFast.F32 = 10.0f;
 									widgetIn.DragLabelSpeed = 1.0f;
 									widgetIn.FormatString = "%g BPM";
 									widgetIn.EnableClamp = true;
-									widgetIn.ValueClampMin.F32 = MinBPM;
-									widgetIn.ValueClampMax.F32 = MaxBPM;
+									widgetIn.ValueClampMin.F32 = MinScrollBPM;
+									widgetIn.ValueClampMax.F32 = MaxScrollBPM;
 								}
-								const MultiEditWidgetResult widgetOut = GuiPropertyMultiSelectionEditWidget(
-									(i == 0) 
-										? UI_Str("EVENT_SCROLL_SPEED") 
-										: (i == 1)
-											? UI_Str("EVENT_PROP_VERTICAL_SCROLL_SPEED")
-											: UI_Str("EVENT_PROP_SCROLL_SPEED_TEMPO")
-									, widgetIn);
-								if (widgetOut.HasValueExact)
-								{
-									for (auto& selectedItem : SelectedItems)
-									{
-										if (i == 0)
-											selectedItem.MemberValues.ScrollSpeed().SetRealPart(widgetOut.ValueExact.F32);
-										else if (i == 1)
-											selectedItem.MemberValues.ScrollSpeed().SetImaginaryPart(widgetOut.ValueExact.F32);
-										else
-											selectedItem.MemberValues.ScrollSpeed().SetRealPart(ScrollTempoToSpeed(Tempo(widgetOut.ValueExact.F32), selectedItem.BaseScrollTempo));
-									}
+								const MultiEditWidgetResult widgetOut = GuiPropertyMultiSelectionEditWidget(labels[i], widgetIn);
+								if (SetPropertyMultiSelection(SelectedItems, widgetIn, widgetOut, getVs[i], setVs[i]))
 									valueWasChanged = true;
-								}
-								else if (widgetOut.HasValueIncrement)
-								{
-									for (auto& selectedItem : SelectedItems)
-									{
-										if (i == 0)
-											selectedItem.MemberValues.ScrollSpeed().SetRealPart(Clamp(selectedItem.MemberValues.ScrollSpeed().GetRealPart() + widgetOut.ValueIncrement.F32, MinScrollSpeed, MaxScrollSpeed));
-										else if (i == 1)
-											selectedItem.MemberValues.ScrollSpeed().SetImaginaryPart(Clamp(selectedItem.MemberValues.ScrollSpeed().GetImaginaryPart() + widgetOut.ValueIncrement.F32, MinScrollSpeed, MaxScrollSpeed));
-										else if (selectedItem.BaseScrollTempo.BPM != 0.0f)
-										{
-											const Tempo oldScrollTempo = ScrollSpeedToTempo(selectedItem.MemberValues.ScrollSpeed().GetRealPart(), selectedItem.BaseScrollTempo);
-											const Tempo newScrollTempo = Tempo(oldScrollTempo.BPM + widgetOut.ValueIncrement.F32);
-											selectedItem.MemberValues.ScrollSpeed().SetRealPart(ScrollTempoToSpeed(Tempo(Clamp(newScrollTempo.BPM, MinBPM, MaxBPM)), selectedItem.BaseScrollTempo));
-										}
-									}
-									valueWasChanged = true;
-								}
 							}
 
-							for (size_t i = 0; i < 3; i++)
-							{
-								// TODO: Maybe option to switch between Beat/Time interpolation modes (?)
-								static constexpr auto getT = [](const TempChartItem& item) -> f64 { return static_cast<f64>(item.MemberValues.BeatStart().Ticks); };
-								static constexpr auto getInterpolatedScrollSpeed = [](const TempChartItem& startItem, const TempChartItem& endItem, const TempChartItem& thisItem, f32 startValue, f32 endValue) -> f32
-								{
-									return static_cast<f32>(ConvertRange<f64>(getT(startItem), getT(endItem), startValue, endValue, getT(thisItem)));
-								};
-
-								TempChartItem* startItem = !SelectedItems.empty() ? &SelectedItems.front() : nullptr;
-								TempChartItem* endItem = !SelectedItems.empty() ? &SelectedItems.back() : nullptr;
-								f32 inOutStartEnd[2] =
-								{
-									(i == 0)
-										? startItem->MemberValues.ScrollSpeed().GetRealPart()
-										: (i == 1)
-											? startItem->MemberValues.ScrollSpeed().GetImaginaryPart()
-											: ScrollSpeedToTempo(startItem->MemberValues.ScrollSpeed().GetRealPart(), startItem->BaseScrollTempo).BPM,
-									(i == 0)
-										? endItem->MemberValues.ScrollSpeed().GetRealPart()
-										: (i == 1)
-											? endItem->MemberValues.ScrollSpeed().GetImaginaryPart()
-											: ScrollSpeedToTempo(endItem->MemberValues.ScrollSpeed().GetRealPart(), endItem->BaseScrollTempo).BPM
-								};
-
-								const b8 isSelectionTooSmall = (SelectedItems.size() < 2);
-								b8 isSelectionAlreadyInterpolated = true;
-								if (!isSelectionTooSmall)
-								{
-									for (const auto& thisItem : SelectedItems)
-									{
-										const f32 thisValue = getInterpolatedScrollSpeed(*startItem, *endItem, thisItem, inOutStartEnd[0], inOutStartEnd[1]);
-										if (!(
-											(i == 0 || i == 2)
-											? ApproxmiatelySame(thisItem.MemberValues.ScrollSpeed().GetRealPart(), 
-												(i == 0) 
-													? thisValue 
-													: ScrollTempoToSpeed(Tempo(thisValue), thisItem.BaseScrollTempo))
-											: ApproxmiatelySame(thisItem.MemberValues.ScrollSpeed().GetImaginaryPart(), thisValue)
-											))
-											isSelectionAlreadyInterpolated = false;
-									}
-								}
-
-								// NOTE: Invalid selection		-> "..." dummied out
-								//		 All the same			-> "=" marker
-								//		 Mixed values			-> "()" values
-								//		 Already interpolated	-> regular values
-								char previewBuffersStartEnd[2][64]; cstr previewStrings[2] = { nullptr, nullptr };
-								if (isSelectionTooSmall)
-								{
-									previewStrings[0] = "...";
-									previewStrings[1] = "...";
-								}
-								else if ((i != 2) ? areAllScrollSpeedsTheSame : areAllScrollTemposTheSame)
-								{
-									previewStrings[1] = "=";
-								}
-								else if (!isSelectionAlreadyInterpolated)
-								{
-									previewStrings[0] = previewBuffersStartEnd[0]; snprintf(previewBuffersStartEnd[0], sizeof(previewBuffersStartEnd[0]), 
-										(i == 0) 
-										? "(%gx)" 
-										: (i == 1) 
-										? "(%gix)" 
-										: "(%g BPM)"
-										, inOutStartEnd[0]);
-									previewStrings[1] = previewBuffersStartEnd[1]; snprintf(previewBuffersStartEnd[1], sizeof(previewBuffersStartEnd[1]), 
-										(i == 0)
-										? "(%gx)"
-										: (i == 1)
-										? "(%gix)"
-										: "(%g BPM)"
-										, inOutStartEnd[1]);
-								}
-
-								Gui::BeginDisabled(isSelectionTooSmall);
-								if ((i == 0) 
-									? GuiPropertyRangeInterpolationEditWidget(UI_Str("EVENT_PROP_INTERPOLATE_SCROLL_SPEED"), inOutStartEnd, 0.1f, 0.5f, MinScrollSpeed, MaxScrollSpeed, "%gx", previewStrings)
-									: (i == 1)
-									? GuiPropertyRangeInterpolationEditWidget(UI_Str("EVENT_PROP_INTERPOLATE_VERTICAL_SCROLL_SPEED"), inOutStartEnd, 0.1f, 0.5f, MinScrollSpeed, MaxScrollSpeed, "%gix", previewStrings)
-									: GuiPropertyRangeInterpolationEditWidget(UI_Str("EVENT_PROP_INTERPOLATE_SCROLL_SPEED_TEMPO"), inOutStartEnd, 1.0f, 10.0f, MinBPM, MaxBPM, "%g BPM", previewStrings))
-								{
-									for (auto& thisItem : SelectedItems)
-									{
-										const f32 thisValue = getInterpolatedScrollSpeed(*startItem, *endItem, thisItem, inOutStartEnd[0], inOutStartEnd[1]);
-										if (i == 0 || i == 2)
-											thisItem.MemberValues.ScrollSpeed().SetRealPart((i == 0) ? thisValue : ScrollTempoToSpeed(Tempo(thisValue), thisItem.BaseScrollTempo));
-										else
-											thisItem.MemberValues.ScrollSpeed().SetImaginaryPart(thisValue);
-									}
+							for (size_t i = 0; i < 3; i++) {
+								sprintf_s(labelBuffer, UI_Str("EVENT_PROP_INTERPOLATE_%s"), labels[i]);
+								if (DrawInterpolationProperty(labelBuffer, widgetIns[i], SelectedItems, getVs[i], setVs[i], equalVss[i]))
 									valueWasChanged = true;
-								}
-								Gui::EndDisabled();
 							}
 						} break;
 						case GenericMember::Time_Offset:
 						{
+							cstr label = UI_Str("EVENT_PROP_TIME_OFFSET");
 							MultiEditWidgetParam widgetIn = {};
 							widgetIn.EnableStepButtons = true;
 							widgetIn.Value.F32 = sharedValues.TimeOffset().ToMS_F32();
@@ -1631,48 +1727,26 @@ namespace PeepoDrumKit
 							widgetIn.EnableDragLabel = true;
 							widgetIn.DragLabelSpeed = 1.0f;
 							widgetIn.FormatString = "%g ms";
-							const MultiEditWidgetResult widgetOut = GuiPropertyMultiSelectionEditWidget(UI_Str("EVENT_PROP_TIME_OFFSET"), widgetIn);
-							if (widgetOut.HasValueExact || widgetOut.HasValueIncrement)
-							{
-								if (widgetOut.HasValueExact)
-								{
-									const Time valueExact = Clamp(Time::FromMS(widgetOut.ValueExact.F32), MinNoteTimeOffset, MaxNoteTimeOffset);
-									for (auto& selectedItem : SelectedItems)
-										selectedItem.MemberValues.TimeOffset() = valueExact;
-									valueWasChanged = true;
-								}
-								else if (widgetOut.HasValueIncrement)
-								{
-									const Time valueIncrement = Time::FromMS(widgetOut.ValueIncrement.F32);
-									for (auto& selectedItem : SelectedItems)
-										selectedItem.MemberValues.TimeOffset() = Clamp(selectedItem.MemberValues.TimeOffset() + valueIncrement, MinNoteTimeOffset, MaxNoteTimeOffset);
-									valueWasChanged = true;
-								}
+							widgetIn.EnableClamp = true;
+							widgetIn.ValueClampMin.F32 = MinNoteTimeOffset.ToMS_F32();
+							widgetIn.ValueClampMax.F32 = MaxNoteTimeOffset.ToMS_F32();
+							const MultiEditWidgetResult widgetOut = GuiPropertyMultiSelectionEditWidget(label, widgetIn);
 
-								for (auto& selectedItem : SelectedItems)
-								{
-									if (ApproxmiatelySame(selectedItem.MemberValues.TimeOffset().Seconds, 0.0))
-										selectedItem.MemberValues.TimeOffset() = Time::Zero();
-								}
-							}
+							auto getV = [](const TempChartItem& item, ...) { return item.MemberValues.TimeOffset().ToMS_F32(); };
+							auto setV = [](TempChartItem& item, f32 v, ...)
+							{
+								item.MemberValues.TimeOffset() = Time::FromMS(v);
+								if (ApproxmiatelySame(item.MemberValues.TimeOffset().Seconds, 0.0))
+									item.MemberValues.TimeOffset() = Time::Zero();
+							};
+							if (SetPropertyMultiSelection(SelectedItems, widgetIn, widgetOut, getV, setV))
+								valueWasChanged = true;
+							sprintf_s(labelBuffer, UI_Str("EVENT_PROP_INTERPOLATE_%s"), label);
+							if (DrawInterpolationProperty(labelBuffer, widgetIn, SelectedItems, getV, setV))
+								valueWasChanged = true;
 						} break;
 						case GenericMember::NoteType_V:
 						{
-							b8 isAnyRegularNoteSelected = false, isAnyDrumrollNoteSelected = false, isAnyBalloonNoteSelected = false;
-							b8 areAllSelectedNotesSmall = true, areAllSelectedNotesBig = true, areAllSelectedNotesHand = true;
-							b8 perNoteTypeHasAtLeastOneSelected[EnumCount<NoteType>] = {};
-							for (const auto& selectedItem : SelectedItems)
-							{
-								const auto noteType = selectedItem.MemberValues.NoteType();
-								isAnyRegularNoteSelected |= IsRegularNote(noteType);
-								isAnyDrumrollNoteSelected |= IsDrumrollNote(noteType);
-								isAnyBalloonNoteSelected |= IsBalloonNote(noteType);
-								areAllSelectedNotesSmall &= IsSmallNote(noteType);
-								areAllSelectedNotesBig &= IsBigNote(noteType);
-								areAllSelectedNotesHand &= IsHandNote(noteType);
-								perNoteTypeHasAtLeastOneSelected[EnumToIndex(noteType)] = true;
-							}
-
 							Gui::Property::PropertyTextValueFunc(UI_Str("EVENT_PROP_NOTE_TYPE"), [&]
 							{
 								const cstr noteTypeNames[] = { UI_Str("NOTE_TYPE_DON"), UI_Str("NOTE_TYPE_DON_BIG"), UI_Str("NOTE_TYPE_KA"), UI_Str("NOTE_TYPE_KA_BIG"),
@@ -1685,7 +1759,7 @@ namespace PeepoDrumKit
 
 								const b8 isSingleNoteType = (commonEqualMemberFlags & EnumToFlag(member));
 								char previewValue[256] {}; if (!isSingleNoteType) { previewValue[0] = '('; }
-								for (i32 i = 0; i < EnumCountI32<NoteType>; i++) { if (perNoteTypeHasAtLeastOneSelected[i]) { strncat(previewValue, noteTypeNames[i], sizeof(previewValue) - strlen(previewValue) - 1); strncat(previewValue, ", ", sizeof(previewValue) - strlen(previewValue) - 1); } }
+								for (i32 i = 0; i < EnumCountI32<NoteType>; i++) { if (perNoteTypeHasAtLeastOneSelected[i]) { strcat_s(previewValue, noteTypeNames[i]); strcat_s(previewValue, ", "); } }
 								for (i32 i = ArrayCountI32(previewValue) - 1; i >= 0; i--) { if (previewValue[i] == ',') { if (!isSingleNoteType) { previewValue[i++] = ')'; } previewValue[i] = '\0'; break; } }
 
 								Gui::SetNextItemWidth(-1.0f);
@@ -1751,6 +1825,7 @@ namespace PeepoDrumKit
 						case GenericMember::Tempo_V:
 						{
 							// TODO: X0.5/x2.0 buttons (?)
+							cstr label = UI_Str("EVENT_TEMPO");
 							MultiEditWidgetParam widgetIn = {};
 							widgetIn.Value.F32 = sharedValues.Tempo().BPM;
 							widgetIn.HasMixedValues = !(commonEqualMemberFlags & EnumToFlag(member));
@@ -1764,29 +1839,20 @@ namespace PeepoDrumKit
 							widgetIn.EnableClamp = true;
 							widgetIn.ValueClampMin.F32 = MinBPM;
 							widgetIn.ValueClampMax.F32 = MaxBPM;
-							const MultiEditWidgetResult widgetOut = GuiPropertyMultiSelectionEditWidget(UI_Str("EVENT_TEMPO"), widgetIn);
-
-							if (widgetOut.HasValueExact)
-							{
-								for (auto& selectedItem : SelectedItems)
-									selectedItem.MemberValues.Tempo() = Tempo(widgetOut.ValueExact.F32);
+							const MultiEditWidgetResult widgetOut = GuiPropertyMultiSelectionEditWidget(label, widgetIn);
+							auto getV = [](const TempChartItem& item, ...) { return item.MemberValues.Tempo().BPM; };
+							auto setV = [](TempChartItem& item, f32 v, ...) { item.MemberValues.Tempo().BPM = v; };
+							if (SetPropertyMultiSelection(SelectedItems, widgetIn, widgetOut, getV, setV))
 								valueWasChanged = true;
-							}
-							else if (widgetOut.HasValueIncrement)
-							{
-								for (auto& selectedItem : SelectedItems)
-									selectedItem.MemberValues.Tempo().BPM = Clamp(selectedItem.MemberValues.Tempo().BPM + widgetOut.ValueIncrement.F32, MinBPM, MaxBPM);
+							sprintf_s(labelBuffer, UI_Str("EVENT_PROP_INTERPOLATE_%s"), label);
+							if (DrawInterpolationProperty(labelBuffer, widgetIn, SelectedItems, getV, setV))
 								valueWasChanged = true;
-							}
 						} break;
 						case GenericMember::TimeSignature_V:
 						{
 							static constexpr i32 components = 2;
-
-							b8 isAnyTimeSignatureInvalid = false;
-							for (const auto& selectedItem : SelectedItems)
-								isAnyTimeSignatureInvalid |= !IsTimeSignatureSupported(selectedItem.MemberValues.TimeSignature());
-
+							cstr label = UI_Str("EVENT_TIME_SIGNATURE");
+							cstr label_components[2] = { UI_Str("EVENT_TIME_SIGNATURE_UPPER"), UI_Str("EVENT_TIME_SIGNATURE_LOWER") };
 							MultiEditWidgetParam widgetIn = {};
 							widgetIn.DataType = ImGuiDataType_S32;
 							widgetIn.Components = components;
@@ -1807,25 +1873,15 @@ namespace PeepoDrumKit
 							widgetIn.EnableDragLabel = false;
 							widgetIn.FormatString = "%d";
 							widgetIn.TextColorOverride = isAnyTimeSignatureInvalid ? &InputTextWarningTextColor : nullptr;
-							const MultiEditWidgetResult widgetOut = GuiPropertyMultiSelectionEditWidget(UI_Str("EVENT_TIME_SIGNATURE"), widgetIn);
-
-							if (widgetOut.HasValueExact || widgetOut.HasValueIncrement)
-							{
-								for (i32 c = 0; c < components; c++)
-								{
-									if (widgetOut.HasValueExact & (1 << c))
-									{
-										for (auto& selectedItem : SelectedItems)
-											selectedItem.MemberValues.TimeSignature()[c] = widgetOut.ValueExact.I32_V[c];
-										valueWasChanged = true;
-									}
-									else if (widgetOut.HasValueIncrement & (1 << c))
-									{
-										for (auto& selectedItem : SelectedItems)
-											selectedItem.MemberValues.TimeSignature()[c] = Clamp(selectedItem.MemberValues.TimeSignature()[c] + widgetOut.ValueIncrement.I32_V[c], MinTimeSignatureValue, MaxTimeSignatureValue);
-										valueWasChanged = true;
-									}
-								}
+							const MultiEditWidgetResult widgetOut = GuiPropertyMultiSelectionEditWidget(label, widgetIn);
+							auto getV = [](const TempChartItem& item, i32 c) { return item.MemberValues.TimeSignature()[c]; };
+							auto setV = [](TempChartItem& item, i32 v, i32 c) { item.MemberValues.TimeSignature()[c] = v; };
+							if (SetPropertyMultiSelection(SelectedItems, widgetIn, widgetOut, getV, setV))
+								valueWasChanged = true;
+							for (i32 c = 0; c < components; c++) {
+								sprintf_s(labelBuffer, UI_Str("EVENT_PROP_INTERPOLATE_%s"), label_components[c]);
+								if (DrawInterpolationProperty(labelBuffer, widgetIn, SelectedItems, getV, setV, c))
+									valueWasChanged = true;
 							}
 						} break;
 						case GenericMember::I8_ScrollType:
@@ -1846,7 +1902,6 @@ namespace PeepoDrumKit
 										for (auto& selectedItem : SelectedItems)
 										{
 											auto& scrollType = selectedItem.MemberValues.ScrollType();
-												selectedItem.MemberValues.BarLineVisible();
 											scrollType = static_cast<i16>(v);
 										}
 										valueWasChanged = true;
@@ -1946,7 +2001,7 @@ namespace PeepoDrumKit
 				// add new entry
 				Gui::Property::PropertyTextValueFunc(labelAdd, [&]
 				{
-					b8* pIsValid = Gui::GetStateStorage()->GetBoolRef(Gui::GetID(reinterpret_cast<const void*>(pNewKey)), keyFilter(newDefault));
+					b8* pIsValid = Gui::GetStateStorage()->GetBoolRef(reinterpret_cast<ImGuiID>(pNewKey), keyFilter(newDefault));
 
 					Gui::SetNextItemWidth(getInsertButtonWidth());
 					Gui::PushStyleColor(ImGuiCol_Text, *pIsValid ? Gui::GetColorU32(ImGuiCol_Text) : InputTextWarningTextColor);
@@ -2478,7 +2533,7 @@ namespace PeepoDrumKit
 						{
 							if (f32 v = ScrollSpeedToTempo(scrollSpeedAtCursor.GetRealPart(), tempoAtCursor).BPM;
 								Gui::SpinFloat("##ScrollTempoAtCursor", &v, 1.0f, 10.0f, "%g BPM"))
-								insertOrUpdateCursorScrollSpeedChange(Complex(ScrollTempoToSpeed(Tempo(Clamp(v, MinBPM, MaxBPM)), tempoAtCursor), 0.0f));
+								insertOrUpdateCursorScrollSpeedChange(Complex(ScrollTempoToSpeed(Tempo(Clamp(v, MinScrollBPM, MaxScrollBPM)), tempoAtCursor), 0.0f));
 						}
 						return false;
 					});
@@ -2657,6 +2712,69 @@ namespace PeepoDrumKit
 						Gui::PopID();
 					});
 
+				const SuddenChange* SuddenChangeAtCursor = course.SuddenChanges.TryFindLastAtBeat(cursorBeat);
+				const Time SuddenAppearanceOffsetAtCursor = (SuddenChangeAtCursor != nullptr) ? SuddenChangeAtCursor->AppearanceOffset : FallbackEvent<SuddenChange>.AppearanceOffset;
+				const Time SuddenMovementOffsetAtCursor = (SuddenChangeAtCursor != nullptr) ? SuddenChangeAtCursor->MovementOffset : FallbackEvent<SuddenChange>.MovementOffset;
+				const b8 SuddenHideRollAtCursor = (SuddenChangeAtCursor != nullptr) ? SuddenChangeAtCursor->HideRoll : FallbackEvent<SuddenChange>.HideRoll;
+				auto insertOrUpdateCursorSudden = [&](Time newAppearanceOffset, Time newMovementOffset, b8 newHideRoll)
+				{
+					if (SuddenChangeAtCursor == nullptr || SuddenChangeAtCursor->BeatTime != cursorBeat)
+						context.Undo.Execute<Commands::AddSudden>(&course, &course.SuddenChanges, SuddenChange{ cursorBeat, newAppearanceOffset, newMovementOffset, newHideRoll });
+					else
+						context.Undo.Execute<Commands::UpdateSudden>(&course, &course.SuddenChanges, SuddenChange{ cursorBeat, newAppearanceOffset, newMovementOffset, newHideRoll });
+				};
+
+				Gui::Property::Property([&]
+				{
+					Gui::BeginDisabled(disableEditingAtPlayCursor);
+					Gui::SetNextItemWidth(-1.0f);
+					if (f32 v = SuddenAppearanceOffsetAtCursor.ToSec_F32(); GuiDragLabelFloat(UI_Str("EVENT_SUDDEN"), &v, 0.005f, ImGuiSliderFlags_None))
+						insertOrUpdateCursorSudden(Time::FromSec(v), SuddenMovementOffsetAtCursor, SuddenHideRollAtCursor);
+					Gui::EndDisabled();
+				});
+				Gui::Property::Value([&]
+				{
+					Gui::BeginDisabled(disableEditingAtPlayCursor);
+
+					Gui::SetNextItemWidth(getInsertButtonWidth());
+					if (f32 v = SuddenAppearanceOffsetAtCursor.ToSec_F32(); Gui::SpinFloat("##SuddenAppearanceOffsetAtCursor", &v, .1f, .5f, "%gs (show)"))
+						insertOrUpdateCursorSudden(Time::FromSec(v), SuddenMovementOffsetAtCursor, SuddenHideRollAtCursor);
+					Gui::SameLine(0, Gui::GetStyle().ItemInnerSpacing.x);
+					if (Gui::Button(u8"∞##SuddenAppearanceOffsetAtCursorInfinity", { Gui::GetFrameHeight(), Gui::GetFrameHeight() }))
+						insertOrUpdateCursorSudden(Time::FromSec(std::numeric_limits<f64>::infinity()), SuddenMovementOffsetAtCursor, SuddenHideRollAtCursor);
+
+					Gui::SetNextItemWidth(getInsertButtonWidth());
+					if (f32 v = SuddenMovementOffsetAtCursor.ToSec_F32(); Gui::SpinFloat("##SuddenMovementOffsetAtCursor", &v, .1f, .5f, "%gs (move)"))
+						insertOrUpdateCursorSudden(SuddenAppearanceOffsetAtCursor, Time::FromSec(v), SuddenHideRollAtCursor);
+					Gui::SameLine(0, Gui::GetStyle().ItemInnerSpacing.x);
+					if (Gui::Button(u8"∞##SuddenMovementOffsetAtCursorInfinity", { Gui::GetFrameHeight(), Gui::GetFrameHeight() }))
+						insertOrUpdateCursorSudden(SuddenAppearanceOffsetAtCursor, Time::FromSec(std::numeric_limits<f64>::infinity()), SuddenHideRollAtCursor);
+
+					if (b8 v = SuddenHideRollAtCursor; Gui::Checkbox(UI_Str("EVENT_SUDDEN_HIDE_ROLL"), &v))
+						insertOrUpdateCursorSudden(SuddenAppearanceOffsetAtCursor, SuddenMovementOffsetAtCursor, v);
+					Gui::SetItemTooltip(UI_Str("EVENT_PROP_SUDDEN_HIDE_ROLL_TOOLTIPS"));
+
+					Gui::PushID(&course.SuddenChanges);
+					if (!disallowRemoveButton && SuddenChangeAtCursor != nullptr && SuddenChangeAtCursor->BeatTime == cursorBeat)
+					{
+						if (Gui::Button(UI_Str("ACT_EVENT_REMOVE"), { getInsertButtonWidth(), 0.0f }))
+							context.Undo.Execute<Commands::RemoveSudden>(&course, &course.SuddenChanges, cursorBeat);
+					}
+					else
+					{
+						if (Gui::Button(UI_Str("ACT_EVENT_ADD"), { getInsertButtonWidth(), 0.0f }))
+							insertOrUpdateCursorSudden(SuddenAppearanceOffsetAtCursor, SuddenMovementOffsetAtCursor, SuddenHideRollAtCursor);
+					}
+					Gui::EndDisabled();
+
+					Gui::SameLine(0, Gui::GetStyle().ItemInnerSpacing.x);
+					Gui::BeginDisabled(!isAnyItemNotInListSelected[EnumToIndex(GenericList::Sudden)]);
+					if (SpriteButton(UI_Str("ACT_EVENT_INSERT_AT_SELECTED_ITEMS"), context, SprID::Timeline_Icon_InsertAtSelectedItems, { Gui::GetFrameHeight(), Gui::GetFrameHeight() }))
+						timeline.ExecuteConvertSelectionToEvents<GenericList::Sudden>(context);
+					Gui::EndDisabled();
+
+					Gui::PopID();
+				});
 
 				Gui::Property::PropertyTextValueFunc(UI_Str("EVENT_GO_GO_TIME"), [&]
 				{

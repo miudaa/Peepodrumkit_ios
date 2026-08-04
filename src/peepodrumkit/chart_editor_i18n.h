@@ -96,8 +96,8 @@ X("ACT_TRANSFORM_SCALE_ITEMS",						"Scale Items") \
 X("ACT_TRANSFORM_SCALE_RANGE",						"Scale Range") \
 X("ACT_TRANSFORM_SCALE_BY_TEMPO",					"Scale by Tempo") \
 X("ACT_TRANSFORM_SCALE_KEEP_TIME_POSITION",			"Keep Time Position") \
-X("ACT_TRANSFORM_SCALE_KEEP_TIME_SIGNATURE",		"Keep Time Signature") \
 X("ACT_TRANSFORM_SCALE_KEEP_ITEM_DURATION",			"Keep Item Duration") \
+X("ACT_TRANSFORM_SCALE_KEEP_EVENT_VALUE",			"Keep Other Event Values") \
 X("ACT_TRANSFORM_RATIO_2_1",						"2:1 (8th to 4th)") \
 X("ACT_TRANSFORM_RATIO_3_2",						"3:2 (12th to 8th)") \
 X("ACT_TRANSFORM_RATIO_4_3",						"4:3 (16th to 12th)") \
@@ -171,6 +171,8 @@ X("ACT_MSGBOX_CANCEL",								"Cancel") \
 X("DETAILS_CHART_EVENT_EVENTS",						"Events") \
 X("EVENT_TEMPO",									"Tempo") \
 X("EVENT_TIME_SIGNATURE",							"Time Signature") \
+X("EVENT_TIME_SIGNATURE_UPPER",						"Upper Time Signature") \
+X("EVENT_TIME_SIGNATURE_LOWER",						"Lower Time Signature") \
 X("EVENT_NOTES",									"Notes") \
 X("EVENT_NOTES_EXPERT",								"Notes (Expert)") \
 X("EVENT_NOTES_MASTER",								"Notes (Master)") \
@@ -182,9 +184,15 @@ X("EVENT_GO_GO_TIME",								"Go-Go Time") \
 X("EVENT_LYRICS",									"Lyrics") \
 X("EVENT_SCROLL_TYPE",								"Scroll Type") \
 X("EVENT_JPOS_SCROLL",								"JPOS Scroll") \
+X("EVENT_SUDDEN",									"Sudden") \
+X("EVENT_SUDDEN_HIDE_ROLL",							"Hide Rolls") \
 X("EVENT_PROP_JPOS_SCROLL_MOVE",					"JPOS Scroll Move") \
 X("EVENT_PROP_VERTICAL_JPOS_SCROLL_MOVE",			"Vertical JPOS Scroll Move") \
 X("EVENT_PROP_JPOS_SCROLL_DURATION",				"JPOS Scroll Duration") \
+X("EVENT_PROP_SUDDEN_APPEARANCE_OFFSET",			"Sudden Appearance Offset") \
+X("EVENT_PROP_SUDDEN_MOVEMENT_OFFSET",				"Sudden Movement Offset") \
+X("EVENT_PROP_SUDDEN_HIDE_ROLL",					"Sudden Hide Rolls") \
+X("EVENT_PROP_SUDDEN_HIDE_ROLL_TOOLTIPS",			"Hide rolls if the offsets are non-infs (show) and infs (move)") \
 X("DETAILS_EVENTS_SYNC",							"Sync") \
 X("SYNC_CHART_DURATION",							"Chart Duration") \
 X("SYNC_SONG_DEMO_START",							"Song Demo Start") \
@@ -228,6 +236,7 @@ X("SELECTED_EVENTS_TIME_SIGNATURES",				"Time Signatures") \
 X("SELECTED_EVENTS_SCROLL_SPEEDS",					"Scroll Speeds") \
 X("SELECTED_EVENTS_BAR_LINE_VISIBILITIES",			"Bar Lines") \
 X("SELECTED_EVENTS_GO_GO_RANGES",					"Go-Go Ranges") \
+X("SELECTED_EVENTS_SUDDEN",							"Suddens") \
 X("EVENT_PROP_BAR_LINE_VISIBLE",					"Bar Line Visible") \
 X("BAR_LINE_VISIBILITY_VISIBLE",					"Visible") \
 X("BAR_LINE_VISIBILITY_HIDDEN",						"Hidden") \
@@ -237,9 +246,7 @@ X("SCROLL_TYPE_NMSCROLL",							"NMSCROLL") \
 X("SCROLL_TYPE_HBSCROLL",							"HBSCROLL") \
 X("SCROLL_TYPE_BMSCROLL",							"BMSCROLL") \
 X("EVENT_PROP_BALLOON_POP_COUNT",					"Balloon Pop Count") \
-X("EVENT_PROP_INTERPOLATE_SCROLL_SPEED",			"Interpolate: Scroll Speed") \
-X("EVENT_PROP_INTERPOLATE_SCROLL_SPEED_TEMPO",		"Interpolate: Scroll Speed Tempo") \
-X("EVENT_PROP_INTERPOLATE_VERTICAL_SCROLL_SPEED",	"Interpolate: Vertical Scroll Speed") \
+X("EVENT_PROP_INTERPOLATE_%s",						"Interpolate: %s") \
 X("EVENT_PROP_TIME_OFFSET",							"Time Offset") \
 X("EVENT_PROP_NOTE_TYPE",							"Note Type") \
 X("EVENT_PROP_NOTE_TYPE_SIZE",						"Note Type Size") \

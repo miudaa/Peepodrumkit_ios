@@ -505,7 +505,7 @@ namespace PeepoDrumKit
 					else
 					{
 						// NOTE: Use a chouonpu here instead of a regular minus for a more readable and thicker glyph at smaller font sizes
-						Gui::TextDisabled("ー"); // u8"ー" // "-" // "(None)"
+						Gui::TextDisabled(u8"ー"); // u8"ー" // "-" // "(None)"
 					}
 
 					Gui::PopID();
@@ -890,14 +890,12 @@ namespace PeepoDrumKit
 							"Close Device on Idle Focus Loss",
 							"Automatically close the audio session when loosing window focus and while not playing any sounds."),
 
-#ifndef __APPLE__
 						SettingsGui::SettingsEntry(
 							settings.Audio.RequestExclusiveDeviceAccess,
 							"Low-Latency Exclusive Mode",
 							"Reduce audio latency by requesting exlusive device access.\n"
 							"This will prevent all *other* applications from playing back or recording audio.",
 							SettingsGui::WidgetType::B8_ExclusiveAudioComboBox),
-#endif
 
 						SettingsGui::SettingsEntry(
 							settings.Audio.BufferFrameSize,

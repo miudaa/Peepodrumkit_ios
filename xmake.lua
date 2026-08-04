@@ -71,8 +71,11 @@ target("PeepoDrumKit")
     add_files("src/audio/*.c", "src/audio/*.cpp")
     add_files("src/imgui/*.cpp")
 
-    if is_os("macosx") then
+    if is_os("macosx") or is_os("iphoneos") then
         add_frameworks("CoreAudio", "AudioToolbox", "AudioUnit", "CoreFoundation")
+    end
+    if is_os("iphoneos") then
+        add_frameworks("UIKit", "QuartzCore", "CoreGraphics", "CoreText", "AVFoundation", "CoreVideo", "Metal")
     end
     add_files("src/imgui/ImGuiColorTextEdit/*.cpp")
     add_files("src/imgui/extension/*.cpp")
@@ -121,7 +124,7 @@ target("PeepoDrumKit")
         -- add_packages("directxshadercompiler")
         -- add_rules("utils.hlsl2spv", {bin2c = true})
         add_cxxflags("/utf-8") -- force UTF-8 string without u8"" (not default in MSVC++)
-    elseif is_os("macosx") then
+    elseif is_os("macosx") or is_os("iphoneos") then
         add_rules("xcode.application")
         add_files("src/Info.plist")
     end

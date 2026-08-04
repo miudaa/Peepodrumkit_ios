@@ -1,5 +1,4 @@
 ﻿#include "chart_editor_i18n.h"
-#include "core/core_io.h"
 
 namespace PeepoDrumKit::i18n
 {
@@ -48,7 +47,7 @@ namespace PeepoDrumKit::i18n
 	{
 		std::filesystem::create_directories("locales");
 		{
-			std::fstream localeFile(Directory::GetResourceDirectory() + "/locales/en.ini", std::ios::out | std::ios::trunc);
+			std::fstream localeFile("locales/en.ini", std::ios::out | std::ios::trunc);
 
 			localeFile << "[Info]" << std::endl;
 			localeFile << "Name = English" << std::endl;
@@ -71,16 +70,8 @@ namespace PeepoDrumKit::i18n
 			std::string("en"),
 			std::string("English")
 		});
-		
-		auto localesDirPath = Directory::GetResourceDirectory() + "/locales";
 
-		if (!std::filesystem::exists(localesDirPath))
-		{
-			HashStringMapMutex.unlock();
-			return;
-		}
-
-		std::filesystem::directory_iterator dirIter(localesDirPath);
+		std::filesystem::directory_iterator dirIter("locales");
 		for (const auto& entry : dirIter)
 		{
 			if (entry.is_regular_file())
@@ -130,7 +121,7 @@ namespace PeepoDrumKit::i18n
 		HashStringMapMutex.lock();
 		std::cout << "Reloading locale to id " << languageId << std::endl;
 		InitBuiltinLocaleWithoutLock();
-		std::string localeFilePath = Directory::GetResourceDirectory() + "/locales/" + std::string(languageId) + ".ini";
+		std::string localeFilePath = "locales/" + std::string(languageId) + ".ini";
 		std::fstream localeFile(localeFilePath, std::ios::in);
 		if (!localeFile.is_open())
 		{

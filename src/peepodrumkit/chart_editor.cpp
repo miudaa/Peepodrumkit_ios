@@ -4,7 +4,6 @@
 #include "chart_editor_widgets.h"
 #include "audio/audio_file_formats.h"
 #include "chart_editor_i18n.h"
-#include <cstddef>
 
 namespace PeepoDrumKit
 {
@@ -13,7 +12,7 @@ namespace PeepoDrumKit
 	static constexpr f32 PresetGuiScaleFactors[] = { 0.5, (2.0f / 3.0f), 0.75f, 0.8f, 0.9f, 1.0f, 1.1f, 1.25f, 1.5f, 1.75f, 2.0f, 2.5f, 3.0f, };
 	static constexpr f32 PresetGuiScaleFactorMin = PresetGuiScaleFactors[0];
 	static constexpr f32 PresetGuiScaleFactorMax = PresetGuiScaleFactors[ArrayCount(PresetGuiScaleFactors) - 1];
-	static f32 NextPresetGuiScaleFactor(f32 current, i32 direction)
+	static constexpr f32 NextPresetGuiScaleFactor(f32 current, i32 direction)
 	{
 		i32 closest = 0;
 		for (const f32& it : PresetGuiScaleFactors) if (it <= current || ApproxmiatelySame(it, current)) closest = ArrayItToIndexI32(&it, &PresetGuiScaleFactors[0]);
@@ -27,8 +26,6 @@ namespace PeepoDrumKit
 	static void ZoomOutGuiScale() { GuiScaleFactorToSetNextFrame = NextPresetGuiScaleFactor(GuiScaleFactorTarget, -1); }
 	static void ZoomResetGuiScale() { GuiScaleFactorToSetNextFrame = 1.0f; }
 
-	static Shell::FileDialog fileDialog {};
-
 	static b8 CanOpenChartDirectoryInFileExplorer(const ChartContext& context)
 	{
 		return !context.ChartFilePath.empty();
@@ -36,14 +33,8 @@ namespace PeepoDrumKit
 
 	static void OpenChartDirectoryInFileExplorer(const ChartContext& context)
 	{
-		if (context.ChartFilePath.empty())
-			return;
-
-		std::string_view chartDirectory = Path::GetDirectoryName(context.ChartFilePath);
-		if (chartDirectory.empty())
-			chartDirectory = ".";
-
-		if (Directory::Exists(chartDirectory))
+		const std::string_view chartDirectory = Path::GetDirectoryName(context.ChartFilePath);
+		if (!chartDirectory.empty() && Directory::Exists(chartDirectory))
 			Shell::OpenInExplorer(chartDirectory);
 	}
 
@@ -62,16 +53,6 @@ namespace PeepoDrumKit
 
 	static b8 GlobalLastSetRequestExclusiveDeviceAccessAudioSetting = {};
 	static i32 GlobalLastSetAudioBufferFrameSize = {};
-	static std::string GlobalLastSetSoundAPI = {};
-
-	static Audio::SoundAPI SoundAPIFromString(std::string_view s)
-	{
-		if (s == "alsa")       return Audio::SoundAPI::ALSA;
-		if (s == "pulseaudio") return Audio::SoundAPI::PulseAudio;
-		if (s == "jack")       return Audio::SoundAPI::Jack;
-		if (s == "dummy")      return Audio::SoundAPI::Dummy;
-		return Audio::SoundAPI::Auto;
-	}
 
 	ChartEditor::ChartEditor()
 	{
@@ -84,10 +65,8 @@ namespace PeepoDrumKit
 		SetChartDefaultSettingsAndCourses(context.Chart);
 
 		GlobalLastSetRequestExclusiveDeviceAccessAudioSetting = *Settings.Audio.RequestExclusiveDeviceAccess;
-		Audio::Engine.SetBackend(*Settings.Audio.RequestExclusiveDeviceAccess ? Audio::Backend::PlatformExclusive : Audio::Backend::PlatformShared);
+		Audio::Engine.SetBackend(*Settings.Audio.RequestExclusiveDeviceAccess ? Audio::Backend::WASAPI_Exclusive : Audio::Backend::WASAPI_Shared);
 		Audio::Engine.SetBufferFrameSize(*Settings.Audio.BufferFrameSize);
-		GlobalLastSetSoundAPI = *Settings.Audio.SoundAPI;
-		Audio::Engine.SetSoundAPI(SoundAPIFromString(*Settings.Audio.SoundAPI));
 		Audio::Engine.SetMasterVolume(0.75f);
 		if (*Settings.Audio.OpenDeviceOnStartup)
 			Audio::Engine.OpenStartStream();
@@ -386,8 +365,8 @@ namespace PeepoDrumKit
 					for (const auto& [pSetting, label] : {
 						std::tuple{ &UserSettingsData::GeneralData::TransformScale_ByTempo, UI_Str("ACT_TRANSFORM_SCALE_BY_TEMPO") },
 						std::tuple{ &UserSettingsData::GeneralData::TransformScale_KeepTimePosition, UI_Str("ACT_TRANSFORM_SCALE_KEEP_TIME_POSITION") },
-						std::tuple{ &UserSettingsData::GeneralData::TransformScale_KeepTimeSignature, UI_Str("ACT_TRANSFORM_SCALE_KEEP_TIME_SIGNATURE") },
 						std::tuple{ &UserSettingsData::GeneralData::TransformScale_KeepItemDuration, UI_Str("ACT_TRANSFORM_SCALE_KEEP_ITEM_DURATION") },
+						std::tuple{ &UserSettingsData::GeneralData::TransformScale_KeepEventValue, UI_Str("ACT_TRANSFORM_SCALE_KEEP_EVENT_VALUE") },
 						}) {
 						if (b8 v = *(Settings.General.*pSetting); Gui::Checkbox(label, &v)) {
 							(Settings_Mutable.General.*pSetting).Value = v;
@@ -529,48 +508,33 @@ namespace PeepoDrumKit
 				Gui::EndMenu();
 			}
 
-			auto getActiveBackendName = []() -> cstr
+			static constexpr Audio::Backend availableBackends[] = { Audio::Backend::WASAPI_Shared, Audio::Backend::WASAPI_Exclusive, };
+			static constexpr auto backendToString = [](Audio::Backend backend) -> cstr
 			{
-				const Audio::Backend current = Audio::Engine.GetBackend();
-				const u32 index = (current == Audio::Backend::PlatformExclusive) ? 1 : 0;
-				if (index < Audio::Engine.GetBackendVariantCount())
-					return Audio::Engine.GetBackendVariantName(index);
-				return Audio::Engine.GetBackendVariantName(0);
+				return (backend == Audio::Backend::WASAPI_Shared) ? "WASAPI Shared" : (backend == Audio::Backend::WASAPI_Exclusive) ? "WASAPI Exclusive" : "Invalid";
 			};
 
 			char performanceTextBuffer[64];
 			sprintf_s(performanceTextBuffer, "[ %.3f ms (%.1f FPS) ]", (1000.0f / Gui::GetIO().Framerate), Gui::GetIO().Framerate);
 
 			char audioTextBuffer[128];
-			#define AudioDeviceMenuLabel "###audioTextMenu"
 			if (Audio::Engine.GetIsStreamOpenRunning())
 			{
-				auto bufferLatency = Audio::FramesToTime(Audio::Engine.GetBufferFrameSize(), Audio::Engine.OutputSampleRate).ToMS();
-				if (bufferLatency < 1.0) {
-					sprintf_s(audioTextBuffer, "[ %gkHz %zubit %dch ~%.2fms %s ]" AudioDeviceMenuLabel,
-						static_cast<f64>(Audio::Engine.OutputSampleRate) / 1000.0,
-						sizeof(i16) * BitsPerByte,
-						Audio::Engine.OutputChannelCount,
-						bufferLatency,
-						getActiveBackendName());
-				} else {
-					sprintf_s(audioTextBuffer, "[ %gkHz %zubit %dch ~%.0fms %s ]" AudioDeviceMenuLabel,
-						static_cast<f64>(Audio::Engine.OutputSampleRate) / 1000.0,
-						sizeof(i16) * BitsPerByte,
-						Audio::Engine.OutputChannelCount,
-						bufferLatency,
-						getActiveBackendName());
-				}
+				sprintf_s(audioTextBuffer, "[ %gkHz %zubit %dch ~%.0fms %s ]",
+					static_cast<f64>(Audio::Engine.OutputSampleRate) / 1000.0,
+					sizeof(i16) * BitsPerByte,
+					Audio::Engine.OutputChannelCount,
+					Audio::FramesToTime(Audio::Engine.GetBufferFrameSize(), Audio::Engine.OutputSampleRate).ToMS(),
+					backendToString(Audio::Engine.GetBackend()));
 			}
 			else
 			{
-				strcpy_s(audioTextBuffer, "[ Audio Device Closed ]" AudioDeviceMenuLabel);
+				strcpy_s(audioTextBuffer, "[ Audio Device Closed ]");
 			}
 
-			const size_t audioTextLength = strlen(audioTextBuffer) - strlen(AudioDeviceMenuLabel);
 			const f32 perItemItemSpacing = (Gui::GetStyle().ItemSpacing.x * 2.0f);
 			const f32 performanceMenuWidth = Gui::CalcTextSize(performanceTextBuffer).x + perItemItemSpacing;
-			const f32 audioMenuWidth = Gui::CalcTextSize(audioTextBuffer, audioTextBuffer + audioTextLength).x + perItemItemSpacing;
+			const f32 audioMenuWidth = Gui::CalcTextSize(audioTextBuffer).x + perItemItemSpacing;
 
 			{
 				Gui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
@@ -699,9 +663,9 @@ namespace PeepoDrumKit
 
 						for (std::unique_ptr<ChartCourse>& course : context.Chart.Courses)
 						{
-							char buffer[96]; sprintf_s(buffer, "%s ★%d%s %s###Course_%p",
+							char buffer[96]; sprintf_s(buffer, u8"%s ★%d%s %s###Course_%p",
 								UI_StrRuntime(DifficultyTypeNames[EnumToIndex(course->Type)]),
-								static_cast<i32>(course->Level),
+								static_cast<i32>(course->Level), 
 								(course->Decimal == DifficultyLevelDecimal::None) ? "" : ((course->Decimal >= DifficultyLevelDecimal::PlusThreshold) ? "+" : ""),
 								GetStyleName(course->Style, course->PlayerSide).data(),
 								course.get());
@@ -808,13 +772,10 @@ namespace PeepoDrumKit
 					Gui::Separator();
 
 					const Audio::Backend currentBackend = Audio::Engine.GetBackend();
-					for (u32 i = 0; i < Audio::Engine.GetBackendVariantCount(); i++)
+					for (const Audio::Backend backendType : availableBackends)
 					{
-						const Audio::Backend backendType = (i == 0) ? Audio::Backend::PlatformShared : Audio::Backend::PlatformExclusive;
-						const cstr variantName = Audio::Engine.GetBackendVariantName(i);
-
 						char labelBuffer[128];
-						sprintf_s(labelBuffer, UI_Str("ACT_AUDIO_USE_FMT_%s_DEVICE"), variantName);
+						sprintf_s(labelBuffer, UI_Str("ACT_AUDIO_USE_FMT_%s_DEVICE"), backendToString(backendType));
 						if (Gui::MenuItem(labelBuffer, nullptr, (backendType == currentBackend), (backendType != currentBackend)))
 							Audio::Engine.SetBackend(backendType);
 					}
@@ -902,18 +863,13 @@ namespace PeepoDrumKit
 		// NOTE: Check for external changes made via the settings window
 		if (GlobalLastSetRequestExclusiveDeviceAccessAudioSetting != *Settings.Audio.RequestExclusiveDeviceAccess)
 		{
-			Audio::Engine.SetBackend(*Settings.Audio.RequestExclusiveDeviceAccess ? Audio::Backend::PlatformExclusive : Audio::Backend::PlatformShared);
+			Audio::Engine.SetBackend(*Settings.Audio.RequestExclusiveDeviceAccess ? Audio::Backend::WASAPI_Exclusive : Audio::Backend::WASAPI_Shared);
 			GlobalLastSetRequestExclusiveDeviceAccessAudioSetting = *Settings.Audio.RequestExclusiveDeviceAccess;
 		}
 		if (GlobalLastSetAudioBufferFrameSize != *Settings.Audio.BufferFrameSize)
 		{
 			Audio::Engine.SetBufferFrameSize(*Settings.Audio.BufferFrameSize);
 			GlobalLastSetAudioBufferFrameSize = *Settings.Audio.BufferFrameSize;
-		}
-		if (GlobalLastSetSoundAPI != *Settings.Audio.SoundAPI)
-		{
-			Audio::Engine.SetSoundAPI(SoundAPIFromString(*Settings.Audio.SoundAPI));
-			GlobalLastSetSoundAPI = *Settings.Audio.SoundAPI;
 		}
 		EnableGuiScaleAnimation = *Settings.Animation.EnableGuiScaleAnimation;
 
@@ -1415,7 +1371,7 @@ namespace PeepoDrumKit
 		timeline.Camera.PositionTarget.x = TimelineCameraBaseScrollX;
 		timeline.Camera.ZoomTarget = vec2(1.0f);
 	}
-
+	
 	void ChartEditor::CreateNewDifficulty(ChartContext& context, DifficultyType difficulty)
 	{
 		auto ccourse = std::make_unique<ChartCourse>();
@@ -1474,18 +1430,18 @@ namespace PeepoDrumKit
 			return Path::TrimExtension(UntitledChartFileName);
 		};
 
+		Shell::FileDialog fileDialog {};
 		fileDialog.InTitle = "Save Chart As";
 		fileDialog.InFileName = getChartFileNameWithoutExtensionOrDefault(context);
 		fileDialog.InDefaultExtension = TJA::Extension;
 		fileDialog.InFilters = { { TJA::FilterName, TJA::FilterSpec }, { Shell::AllFilesFilterName, Shell::AllFilesFilterSpec }, };
 		fileDialog.InParentWindowHandle = ApplicationHost::GlobalState.NativeWindowHandle;
-		fileDialog.onCallback = [&](Shell::FileDialogResult result)
-		{
-			if (result == Shell::FileDialogResult::OK)
-				SaveChart(context, fileDialog.OutFilePath);
-		};
 
-		return fileDialog.OpenSave();
+		if (fileDialog.OpenSave() != Shell::FileDialogResult::OK)
+			return false;
+
+		SaveChart(context, fileDialog.OutFilePath);
+		return true;
 	}
 
 	b8 ChartEditor::TrySaveChartOrOpenSaveAsDialog(ChartContext& context)
@@ -1536,7 +1492,7 @@ namespace PeepoDrumKit
 			return result;
 		});
 	}
-
+	
 	void ChartEditor::StartAsyncLoadingSongJacketFile(std::string_view absoluteJacketFilePath)
 	{
 		if (loadJacketFuture.valid())
@@ -1644,44 +1600,44 @@ namespace PeepoDrumKit
 
 	b8 ChartEditor::OpenLoadChartFileDialog(ChartContext& context)
 	{
+		Shell::FileDialog fileDialog {};
 		fileDialog.InTitle = "Open Chart File";
 		fileDialog.InFilters = { { TJA::FilterName, TJA::FilterSpec }, { Shell::AllFilesFilterName, Shell::AllFilesFilterSpec }, };
 		fileDialog.InParentWindowHandle = ApplicationHost::GlobalState.NativeWindowHandle;
-		fileDialog.onCallback = [&](Shell::FileDialogResult result)
-		{
-			if (result == Shell::FileDialogResult::OK)
-				StartAsyncImportingChartFile(fileDialog.OutFilePath);
-		};
 
-		return fileDialog.OpenRead();
+		if (fileDialog.OpenRead() != Shell::FileDialogResult::OK)
+			return false;
+
+		StartAsyncImportingChartFile(fileDialog.OutFilePath);
+		return true;
 	}
 
 	b8 ChartEditor::OpenLoadAudioFileDialog(Undo::UndoHistory& undo)
 	{
+		Shell::FileDialog fileDialog {};
 		fileDialog.InTitle = "Open Audio File";
-		fileDialog.InFilters = { { "Audio Files", "flac;ogg;mp3;wav" }, { Shell::AllFilesFilterName, Shell::AllFilesFilterSpec }, };
+		fileDialog.InFilters = { { "Audio Files", "*.flac;*.ogg;*.mp3;*.wav" }, { Shell::AllFilesFilterName, Shell::AllFilesFilterSpec }, };
 		fileDialog.InParentWindowHandle = ApplicationHost::GlobalState.NativeWindowHandle;
-		fileDialog.onCallback = [&](Shell::FileDialogResult result)
-		{
-			if (result == Shell::FileDialogResult::OK)
-				SetAndStartLoadingChartSongFileName(fileDialog.OutFilePath, undo);
-		};
 
-		return fileDialog.OpenRead();
+		if (fileDialog.OpenRead() != Shell::FileDialogResult::OK)
+			return false;
+
+		SetAndStartLoadingChartSongFileName(fileDialog.OutFilePath, undo);
+		return true;
 	}
 
 	b8 ChartEditor::OpenLoadJacketFileDialog(Undo::UndoHistory& undo)
 	{
+		Shell::FileDialog fileDialog {};
 		fileDialog.InTitle = "Open Jacket File";
-		fileDialog.InFilters = { { "Image Files", "jpg;jpeg;png" }, { Shell::AllFilesFilterName, Shell::AllFilesFilterSpec }, };
+		fileDialog.InFilters = { { "Image Files", "*.jpg;*.jpeg;*.png" }, { Shell::AllFilesFilterName, Shell::AllFilesFilterSpec }, };
 		fileDialog.InParentWindowHandle = ApplicationHost::GlobalState.NativeWindowHandle;
-		fileDialog.onCallback = [&](Shell::FileDialogResult result)
-		{
-			if (result == Shell::FileDialogResult::OK)
-				SetAndStartLoadingSongJacketFileName(fileDialog.OutFilePath, undo);
-		};
 
-		return fileDialog.OpenRead();
+		if (fileDialog.OpenRead() != Shell::FileDialogResult::OK)
+			return false;
+
+		SetAndStartLoadingSongJacketFileName(fileDialog.OutFilePath, undo);
+		return true;
 	}
 
 	void ChartEditor::CheckOpenSaveConfirmationPopupThenCall(std::function<void()> onSuccess)
@@ -1702,7 +1658,7 @@ namespace PeepoDrumKit
 		context.Gfx.UpdateAsyncLoading();
 		context.SfxVoicePool.UpdateAsyncLoading();
 
-		if (importChartFuture.valid() && future_is_ready(importChartFuture))
+		if (importChartFuture.valid() && importChartFuture._Is_ready())
 		{
 			const Time previousChartSongOffset = context.Chart.SongOffset;
 
@@ -1733,7 +1689,7 @@ namespace PeepoDrumKit
 		static constexpr Time maxWaveformFadeOutDelaySafetyLimit = Time::FromSec(0.5);
 		const b8 waveformHasFadedOut = (context.SongWaveformFadeAnimationCurrent <= 0.01f || loadSongStopwatch.GetElapsed() >= maxWaveformFadeOutDelaySafetyLimit);
 
-		if (loadSongFuture.valid() && future_is_ready(loadSongFuture) && waveformHasFadedOut)
+		if (loadSongFuture.valid() && loadSongFuture._Is_ready() && waveformHasFadedOut)
 		{
 			loadSongStopwatch.Stop();
 			AsyncLoadSongResult loadResult = loadSongFuture.get();
@@ -1758,7 +1714,7 @@ namespace PeepoDrumKit
 			Audio::Engine.EnsureStreamRunning();
 		}
 
-		if (loadJacketFuture.valid() && future_is_ready(loadJacketFuture))
+		if (loadJacketFuture.valid() && loadJacketFuture._Is_ready())
 		{
 			AsyncLoadJacketResult loadResult = loadJacketFuture.get();
 

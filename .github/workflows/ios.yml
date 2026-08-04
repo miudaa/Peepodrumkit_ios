@@ -1,0 +1,40 @@
+name: Build iOS IPA
+
+on:
+  push:
+    branches: [ master, main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Install xmake
+      run: curl -fsSL https://xmake.io/shget.text | bash
+
+    - name: Setup xmake
+      run: echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+    - name: Configure for iOS
+      run: xmake f -p iphoneos -a arm64 -y
+
+    - name: Build
+      run: xmake -y
+
+    - name: Package IPA
+      run: |
+        mkdir -p build/Payload
+        cp -r build/iphoneos/arm64/release/PeepoDrumKit.app build/Payload/
+        cd build
+        zip -r PeepoDrumKit.ipa Payload
+        
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: PeepoDrumKit-iOS-Unsigned
+        path: build/PeepoDrumKit.ipa

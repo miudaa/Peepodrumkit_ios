@@ -148,8 +148,8 @@ namespace PeepoDrumKit
 			WithDefault<CustomScaleRatioList> CustomScaleRatios = {};
 			WithDefault<b8> TransformScale_ByTempo = false;
 			WithDefault<b8> TransformScale_KeepTimePosition = false;
-			WithDefault<b8> TransformScale_KeepTimeSignature = false;
 			WithDefault<b8> TransformScale_KeepItemDuration = false;
+			WithDefault<b8> TransformScale_KeepEventValue = false;
 			// TODO: ...
 			static inline WithDefault<vec2> GameViewportAspectRatioMin = vec2(0.0f, 0.0f);
 			static inline WithDefault<vec2> GameViewportAspectRatioMax = vec2(0.0f, 0.0f);
@@ -161,7 +161,6 @@ namespace PeepoDrumKit
 			WithDefault<b8> CloseDeviceOnIdleFocusLoss = false;
 			WithDefault<b8> RequestExclusiveDeviceAccess = false;
 			WithDefault<i32> BufferFrameSize = 0;
-			WithDefault<std::string> SoundAPI = "auto";
 		} Audio;
 
 		struct AnimationData
@@ -207,11 +206,7 @@ namespace PeepoDrumKit
 			WithDefault<MultiInputBinding> Timeline_Cut = { KeyBinding(ImGuiKey_X, ImGuiMod_Ctrl) };
 			WithDefault<MultiInputBinding> Timeline_Copy = { KeyBinding(ImGuiKey_C, ImGuiMod_Ctrl) };
 			WithDefault<MultiInputBinding> Timeline_Paste = { KeyBinding(ImGuiKey_V, ImGuiMod_Ctrl) };
-#if defined(__APPLE__)
-			WithDefault<MultiInputBinding> Timeline_DeleteSelection = { KeyBinding(ImGuiKey_Backspace) };
-#else // defined(__APPLE__)
 			WithDefault<MultiInputBinding> Timeline_DeleteSelection = { KeyBinding(ImGuiKey_Delete) };
-#endif // defined(__APPLE__)
 			WithDefault<MultiInputBinding> Timeline_StartEndRangeSelection = { KeyBinding(ImGuiKey_Tab) };
 			WithDefault<MultiInputBinding> Timeline_SelectAll = {};
 			WithDefault<MultiInputBinding> Timeline_ClearSelection = {};

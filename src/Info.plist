@@ -7,9 +7,9 @@
     <key>CFBundleIdentifier</key>
     <string>net.samyuu.PeepoDrumKit</string>
     <key>CFBundleVersion</key>
-    <string>1.0</string>
+    <string>1240</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.0</string>
+    <string>1.2.0</string>
     <key>CFBundleExecutable</key>
     <string>PeepoDrumKit</string>
     <key>CFBundlePackageType</key>
@@ -20,7 +20,16 @@
     <string>NSApplication</string>
     <key>NSHighResolutionCapable</key>
     <true/>
-    <key>CFBundleIconFile</key>
-    <string>PeepoDrumKit</string>
+    <key>LSRequiresIPhoneOS</key>
+    <true/>
+    <key>UIRequiredDeviceCapabilities</key>
+    <array>
+        <string>arm64</string>
+    </array>
+    <key>UISupportedInterfaceOrientations</key>
+    <array>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
 </dict>
 </plist>

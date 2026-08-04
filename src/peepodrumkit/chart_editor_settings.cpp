@@ -57,7 +57,7 @@ namespace PeepoDrumKit
 
 	static i32 RectToTLSizeString(char* buffer, size_t bufferSize, const Rect& in)
 	{
-		return snprintf(buffer, bufferSize, "%g, %g, %g, %g", in.TL.x, in.TL.y, in.GetWidth(), in.GetHeight());
+		return sprintf_s(buffer, bufferSize, "%g, %g, %g, %g", in.TL.x, in.TL.y, in.GetWidth(), in.GetHeight());
 	}
 
 	static b8 RectFromTLSizeString(std::string_view in, Rect& out)
@@ -267,7 +267,7 @@ namespace PeepoDrumKit
 	}
 
 	constexpr size_t SizeOfPersistentAppData = sizeof(PersistentAppData);
-	// static_assert(PEEPO_RELEASE || SizeOfPersistentAppData == 136, "TODO: Add missing ini file handling for newly added PersistentAppData fields");
+	static_assert(PEEPO_RELEASE || SizeOfPersistentAppData == 136, "TODO: Add missing ini file handling for newly added PersistentAppData fields");
 
 	SettingsParseResult ParseSettingsIni(std::string_view fileContent, PersistentAppData& out)
 	{
@@ -468,15 +468,14 @@ namespace PeepoDrumKit
 			X(General.CustomScaleRatios, "custom_scale_ratios");
 			X(General.TransformScale_ByTempo, "transform_scale_by_tempo");
 			X(General.TransformScale_KeepTimePosition, "transform_scale_keep_time_position");
-			X(General.TransformScale_KeepTimeSignature, "transform_scale_keep_time_signature");
 			X(General.TransformScale_KeepItemDuration, "transform_scale_keep_item_duration");
+			X(General.TransformScale_KeepEventValue, "transform_scale_keep_event_value");
 
 			SECTION("audio");
 			X(Audio.OpenDeviceOnStartup, "open_device_on_startup");
 			X(Audio.CloseDeviceOnIdleFocusLoss, "close_device_on_idle_focus_loss");
 			X(Audio.RequestExclusiveDeviceAccess, "request_exclusive_device_access");
 			X(Audio.BufferFrameSize, "buffer_frame_size");
-			X(Audio.SoundAPI, "sound_api");
 
 			SECTION("animation");
 			X(Animation.EnableGuiScaleAnimation, "enable_gui_scale_animation");

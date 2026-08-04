@@ -79,6 +79,7 @@ namespace PeepoDrumKit
 		Lyrics,
 		ScrollType,
 		JPOSScroll,
+		Sudden,
 		Count,
 
 		NoteBranches_First = Notes_Normal,
@@ -98,6 +99,7 @@ namespace PeepoDrumKit
 		"EVENT_LYRICS",
 		"EVENT_SCROLL_TYPE",
 		"EVENT_JPOS_SCROLL",
+		"EVENT_SUDDEN",
 	};
 
 	constexpr GenericList TimelineRowToGenericList(TimelineRowType row)
@@ -115,6 +117,7 @@ namespace PeepoDrumKit
 		case TimelineRowType::Lyrics: return GenericList::Lyrics;
 		case TimelineRowType::ScrollType: return GenericList::ScrollType;
 		case TimelineRowType::JPOSScroll: return GenericList::JPOSScroll;
+		case TimelineRowType::Sudden: return GenericList::Sudden;
 		default: assert(false); return GenericList::Count;
 		}
 	}
@@ -134,6 +137,7 @@ namespace PeepoDrumKit
 		case GenericList::Lyrics: return TimelineRowType::Lyrics;
 		case GenericList::ScrollType: return TimelineRowType::ScrollType;
 		case GenericList::JPOSScroll: return TimelineRowType::JPOSScroll;
+		case GenericList::Sudden: return TimelineRowType::Sudden;
 		default: assert(false); return TimelineRowType::Count;
 		}
 	}
@@ -178,9 +182,9 @@ namespace PeepoDrumKit
 	};
 	union SelectionActionParam
 	{
-		i32 ShiftDelta;
-		cstr Pattern; // NOTE: In the format: "xo", "xoo", "xooo", "xxoo", etc.
-		Beat BeatCursor;
+		struct { i32 ShiftDelta; };
+		struct { cstr Pattern; }; // NOTE: In the format: "xo", "xoo", "xooo", "xxoo", etc.
+		struct { Beat BeatCursor; };
 		inline SelectionActionParam& SetShiftDelta(i32 v) { ShiftDelta = v; return *this; }
 		inline SelectionActionParam& SetPattern(cstr pattern) { Pattern = pattern; return *this; }
 		inline SelectionActionParam& SetBeatCursor(Beat beat) { BeatCursor = beat; return *this; }
@@ -235,14 +239,6 @@ namespace PeepoDrumKit
 			Beat BeatOnMouseDown;
 			Beat BeatDistanceMovedSoFar;
 		} SelectedItemDrag = {};
-
-		struct BarLineDragData
-		{
-			b8 IsActive;
-			b8 IsHovered;
-			Beat BarBeat;
-			Beat TempoEventBeat;
-		} BarLineDrag = {};
 
 		struct LongNotePlacementData
 		{
