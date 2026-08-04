@@ -893,19 +893,25 @@ namespace PeepoDrumKit
 			in);
 	}
 
-	// need to be lambdas to be used as arguments with to-be-deduced parameter types (not needed since C++20)
-	constexpr auto GetGeneric = [&](auto&& typedMember, auto& typedOutValue)
-	{
-		if constexpr (expect_type_v<decltype(typedMember), std::string> && !expect_type_v<decltype(typedOutValue), std::string>) // for GenericMember::CStr_Lyric
-			typedOutValue = typedMember.data();
-		else
-			typedOutValue = static_cast<std::remove_reference_t<decltype(typedOutValue)>>(typedMember);
+	// Use function objects instead of lambdas to avoid Clang constexpr capture issues
+	struct GetGenericFunc {
+		template <typename TMember, typename TOut>
+		constexpr void operator()(TMember&& typedMember, TOut& typedOutValue) const {
+			if constexpr (expect_type_v<TMember, std::string> && !expect_type_v<TOut, std::string>)
+				typedOutValue = typedMember.data();
+			else
+				typedOutValue = static_cast<std::remove_reference_t<TOut>>(typedMember);
+		}
 	};
+	inline constexpr GetGenericFunc GetGeneric {};
 
-	constexpr auto SetGeneric = [&](auto& typedMember, auto&& typedInValue)
-	{
-		typedMember = static_cast<std::remove_reference_t<decltype(typedMember)>>(typedInValue);
+	struct SetGenericFunc {
+		template <typename TMember, typename TIn>
+		constexpr void operator()(TMember& typedMember, TIn&& typedInValue) const {
+			typedMember = static_cast<std::remove_reference_t<TMember>>(typedInValue);
+		}
 	};
+	inline constexpr SetGenericFunc SetGeneric {};
 
 	// generic adapters
 	// TryGet/Set<Member>(obj_args..., value), for compile-time constant Member
