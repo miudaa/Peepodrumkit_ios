@@ -16,10 +16,10 @@ namespace PeepoDrumKit
 
 	static constexpr cstr SoundEffectTypeFilePaths[] =
 	{
-		u8"assets/audio/taiko_don_16bit_44100.wav",
-		u8"assets/audio/taiko_ka_16bit_44100.wav",
-		u8"assets/audio/metronome_bar_16bit_44100.wav",
-		u8"assets/audio/metronome_beat_16bit_44100.wav",
+		"assets/audio/taiko_don_16bit_44100.wav",
+		"assets/audio/taiko_ka_16bit_44100.wav",
+		"assets/audio/metronome_bar_16bit_44100.wav",
+		"assets/audio/metronome_beat_16bit_44100.wav",
 	};
 
 	static_assert(ArrayCount(SoundEffectTypeFilePaths) == EnumCount<SoundEffectType>);
