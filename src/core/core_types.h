@@ -20,6 +20,11 @@
 #include <stdarg.h>
 #include <stdio.h>
 
+template<typename... Args>
+inline int sprintf_s(char* dest, size_t size, const char* format, Args... args) {
+    return snprintf(dest, size, format, args...);
+}
+
 template<size_t N, typename... Args>
 inline int sprintf_s(char (&dest)[N], const char* format, Args... args) {
     return snprintf(dest, N, format, args...);

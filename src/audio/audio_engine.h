@@ -91,6 +91,12 @@ namespace Audio
 		Default = PlatformShared,
 	};
 
+	constexpr cstr BackendNames[EnumCount<Backend>] =
+	{
+		"Platform (Shared)",
+		"Platform (Exclusive)",
+	};
+
 	enum class PanLaw : u8
 	{
 		db6, // linear amplitude
