@@ -1098,11 +1098,11 @@ namespace PeepoDrumKit
 
 	using TempChartItem = ChartInspectorWindow::TempChartItem;
 
-	template <typename HintT = keep_deduced_t, typename GetF, typename SetF, typename ClampF,
-		typename DeducedT = std::invoke_result_t<GetF, const TempChartItem&, i32>,
-		typename T = decltype(keep_or_static_cast<HintT>(std::declval<DeducedT>())),
-		expect_type_t<std::invoke_result_t<SetF, TempChartItem&, T, i32>, void> = true,
-		expect_type_t<std::invoke_result_t<ClampF, T, i32>, T, DeducedT> = true>
+		template <typename HintT = keep_deduced_t, typename GetF, typename SetF, typename ClampF,
+			typename DeducedT = std::invoke_result_t<GetF, const TempChartItem&, i32>,
+			typename T = decltype(keep_or_static_cast<HintT>(std::declval<DeducedT>())),
+			expect_type_t<std::invoke_result_t<SetF, TempChartItem&, T, i32>, void> = true,
+			std::enable_if_t<expect_type_v<std::invoke_result_t<ClampF, T, i32>, T> || expect_type_v<std::invoke_result_t<ClampF, T, i32>, DeducedT>, bool> = true>
 	static b8 SetPropertyMultiSelection(std::vector<TempChartItem>& SelectedItems, const MultiEditWidgetResult& widgetOut,
 		GetF&& getValue, SetF&& setValue, ClampF&& clampValue, i32 components = 1)
 	{

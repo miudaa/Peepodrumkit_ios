@@ -571,7 +571,7 @@ namespace PeepoDrumKit
 
 	// Member availability queries
 	template <typename T, GenericMember Member>
-	extern constexpr b8 IsMemberAvailable; // defined later
+	constexpr b8 IsMemberAvailable = (has_get_v<T, Member> || expect_type_v<T, GenericMemberType<Member>>) && !std::is_void_v<decltype(get_or_forward<Member>(std::declval<T>()))>;
 
 	template <typename T, GenericMember... Members>
 	constexpr GenericMemberFlags GetAvailableMemberFlags(enum_sequence<GenericMember, Members...>) {
@@ -861,13 +861,13 @@ namespace PeepoDrumKit
 			std::forward<decltype(event)>(event), std::forward<Args>(args)...);
 	}
 
-	template <GenericMember Member, typename FAction, typename GenericMemberUnionT, expect_type_t<GenericMemberUnionT, GenericMemberUnion, AllGenericMembersUnionArray> = true, typename... Args>
+	template <GenericMember Member, typename FAction, typename GenericMemberUnionT, std::enable_if_t<expect_type_v<GenericMemberUnionT, GenericMemberUnion> || expect_type_v<GenericMemberUnionT, AllGenericMembersUnionArray>, bool> = true, typename... Args>
 	constexpr __forceinline b8 TryDo(FAction&& action, GenericMemberUnionT&& value, Args&&... args)
 	{
 		return TryDoImpl<Member>(std::forward<FAction>(action), std::forward<decltype(value)>(value), get_or_forward<Member>(std::forward<Args>(args)...));
 	}
 
-	template <typename FAction, typename GenericMemberUnionT, expect_type_t<GenericMemberUnionT, GenericMemberUnion, AllGenericMembersUnionArray> = true, typename... Args>
+	template <typename FAction, typename GenericMemberUnionT, std::enable_if_t<expect_type_v<GenericMemberUnionT, GenericMemberUnion> || expect_type_v<GenericMemberUnionT, AllGenericMembersUnionArray>, bool> = true, typename... Args>
 	constexpr __forceinline b8 TryDo(FAction&& action, GenericMemberUnionT&& value, GenericMember member, Args&&... args)
 	{
 		return TryDoImpl(std::forward<FAction>(action), std::forward<decltype(value)>(value), member, std::forward<Args>(args)...);
