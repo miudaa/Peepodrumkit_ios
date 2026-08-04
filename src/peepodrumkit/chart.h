@@ -461,7 +461,7 @@ namespace PeepoDrumKit
 	};
 
 	template <auto ChartProject::* Attr>
-	extern constexpr std::string_view DisplayNameOfChartProjectAttr; // defined later
+	constexpr std::string_view DisplayNameOfChartProjectAttr = ""; // defined later
 
 	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartDuration> = "Chart Duration";
 	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartTitle> = "Chart Title";
@@ -569,17 +569,7 @@ namespace PeepoDrumKit
 	constexpr cstr GenericListNames[] = { "TempoChanges", "SignatureChanges", "Notes_Normal", "Notes_Expert", "Notes_Master", "ScrollChanges", "BarLineChanges", "GoGoRanges", "Lyrics", "ScrollType", "JPOSScroll", "Sudden",};
 	constexpr cstr GenericMemberNames[] = { "IsSelected", "BarLineVisible", "BalloonPopCount", "ScrollSpeed", "Start", "Duration", "Offset", "NoteType", "Tempo", "TimeSignature", "Lyric", "ScrollType", "JPOSScroll", "JPOSScrollDuration", "SuddenAppearanceOffset", "SuddenMovementOffset", "SuddenHideRoll"};
 
-	// Member availability queries
-	template <typename T, GenericMember Member>
-	constexpr b8 IsMemberAvailable = (has_get_v<T, Member> || expect_type_v<T, GenericMemberType<Member>>) && !std::is_void_v<decltype(get_or_forward<Member>(std::declval<T>()))>;
-
-	template <typename T, GenericMember... Members>
-	constexpr GenericMemberFlags GetAvailableMemberFlags(enum_sequence<GenericMember, Members...>) {
-		return (GenericMemberFlags_None | ... | (IsMemberAvailable<T, Members> ? EnumToFlag(Members) : 0));
-	}
-
-	template <typename T>
-	constexpr GenericMemberFlags AvailableMemberFlags = ForceConsteval<GetAvailableMemberFlags<T>(make_enum_sequence<GenericMember>())>;
+	// Member availability queries (forward declarations moved below)
 
 	union GenericMemberUnion
 	{
@@ -800,6 +790,14 @@ namespace PeepoDrumKit
 
 	template <typename T, GenericMember Member>
 	constexpr b8 IsMemberAvailable = (has_get_v<T, Member> || expect_type_v<T, GenericMemberType<Member>>) && !std::is_void_v<decltype(get_or_forward<Member>(std::declval<T>()))>;
+
+	template <typename T, GenericMember... Members>
+	constexpr GenericMemberFlags GetAvailableMemberFlags(enum_sequence<GenericMember, Members...>) {
+		return (GenericMemberFlags_None | ... | (IsMemberAvailable<T, Members> ? EnumToFlag(Members) : 0));
+	}
+
+	template <typename T>
+	constexpr GenericMemberFlags AvailableMemberFlags = ForceConsteval<GetAvailableMemberFlags<T>(make_enum_sequence<GenericMember>())>;
 
 	// Apply `action` on `args` resolved by `member` if available, otherwise return `vDefault` on nothing if valid, otherwise return `vError`
 	// If `TRet` is not specified, all of `action`'s possible return values, `vDefault`, and `vError` must have the same type
