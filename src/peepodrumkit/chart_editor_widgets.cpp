@@ -862,7 +862,7 @@ namespace PeepoDrumKit
 					row([] { Gui::Text("Fast (Action)"); }, [] { Gui::Text("Shift + { Action }"); });
 					row([] { Gui::Text("Slow (Action)"); }, [] { Gui::Text("Alt + { Action }"); });
 					rowSeparator();
-					row([] { Gui::Text("Play / pause"); }, [] { Gui::Text(ToShortcutString(*Settings.Input.Timeline_TogglePlayback).Data); });
+					row([] { Gui::Text("Play / pause"); }, [] { Gui::Text("%s", ToShortcutString(*Settings.Input.Timeline_TogglePlayback).Data); });
 					row([] { Gui::Text("Add / remove note"); }, []
 					{
 						Gui::Text("%s / %s / %s / %s",
@@ -877,18 +877,18 @@ namespace PeepoDrumKit
 					});
 					row([] { Gui::Text("Add big note"); }, [] { Gui::Text("Alt + { Note }"); });
 					row([] { Gui::Text("Fill range-selection with notes"); }, [] { Gui::Text("Shift + { Note }"); });
-					row([] { Gui::Text("Start / end range-selection"); }, [] { Gui::Text(ToShortcutString(*Settings.Input.Timeline_StartEndRangeSelection).Data); });
+					row([] { Gui::Text("Start / end range-selection"); }, [] { Gui::Text("%s", ToShortcutString(*Settings.Input.Timeline_StartEndRangeSelection).Data); });
 					row([] { Gui::Text("Grid division"); }, [] { Gui::Text("Mouse [X1/X2] / [%s/%s]", ToShortcutString(*Settings.Input.Timeline_IncreaseGridDivision).Data, ToShortcutString(*Settings.Input.Timeline_DecreaseGridDivision).Data); });
 					row([] { Gui::Text("Step cursor"); }, [] { Gui::Text("%s / %s", ToShortcutString(*Settings.Input.Timeline_StepCursorLeft).Data, ToShortcutString(*Settings.Input.Timeline_StepCursorRight).Data); });
 					rowSeparator();
 					row([] { Gui::Text("Move selected items"); }, [] { Gui::Text("Mouse Left (Hover)"); });
-					row([] { Gui::Text("Cut selected items"); }, [] { Gui::Text(ToShortcutString(*Settings.Input.Timeline_Cut).Data); });
-					row([] { Gui::Text("Copy selected items"); }, [] { Gui::Text(ToShortcutString(*Settings.Input.Timeline_Copy).Data); });
-					row([] { Gui::Text("Paste selected items"); }, [] { Gui::Text(ToShortcutString(*Settings.Input.Timeline_Paste).Data); });
-					row([] { Gui::Text("Delete selected items"); }, [] { Gui::Text(ToShortcutString(*Settings.Input.Timeline_DeleteSelection).Data); });
+					row([] { Gui::Text("Cut selected items"); }, [] { Gui::Text("%s", ToShortcutString(*Settings.Input.Timeline_Cut).Data); });
+					row([] { Gui::Text("Copy selected items"); }, [] { Gui::Text("%s", ToShortcutString(*Settings.Input.Timeline_Copy).Data); });
+					row([] { Gui::Text("Paste selected items"); }, [] { Gui::Text("%s", ToShortcutString(*Settings.Input.Timeline_Paste).Data); });
+					row([] { Gui::Text("Delete selected items"); }, [] { Gui::Text("%s", ToShortcutString(*Settings.Input.Timeline_DeleteSelection).Data); });
 					rowSeparator();
 					row([] { Gui::Text("Playback speed"); }, [] { Gui::Text("%s / %s", ToShortcutString(*Settings.Input.Timeline_DecreasePlaybackSpeed).Data, ToShortcutString(*Settings.Input.Timeline_IncreasePlaybackSpeed).Data); });
-					row([] { Gui::Text("Toggle metronome"); }, [] { Gui::Text(ToShortcutString(*Settings.Input.Timeline_ToggleMetronome).Data); });
+					row([] { Gui::Text("Toggle metronome"); }, [] { Gui::Text("%s", ToShortcutString(*Settings.Input.Timeline_ToggleMetronome).Data); });
 
 					Gui::EndTable();
 				}
@@ -1117,7 +1117,7 @@ namespace PeepoDrumKit
 				valueWasChanged = true;
 			} else if (widgetOut.HasValueIncrement & (1 << c)) {
 				for (auto& selectedItem : SelectedItems)
-					setValue(selectedItem, clampValue(T{ getValue(selectedItem, c) + get<T[4]>(widgetOut.ValueIncrement)[c] }, c), c);
+					setValue(selectedItem, clampValue(static_cast<T>(getValue(selectedItem, c) + get<T[4]>(widgetOut.ValueIncrement)[c]), c), c);
 				valueWasChanged = true;
 			}
 		}
@@ -2001,7 +2001,7 @@ namespace PeepoDrumKit
 				// add new entry
 				Gui::Property::PropertyTextValueFunc(labelAdd, [&]
 				{
-					b8* pIsValid = Gui::GetStateStorage()->GetBoolRef(reinterpret_cast<ImGuiID>(pNewKey), keyFilter(newDefault));
+					b8* pIsValid = Gui::GetStateStorage()->GetBoolRef(static_cast<ImGuiID>(std::hash<const void*>{}(pNewKey)), keyFilter(newDefault));
 
 					Gui::SetNextItemWidth(getInsertButtonWidth());
 					Gui::PushStyleColor(ImGuiCol_Text, *pIsValid ? Gui::GetColorU32(ImGuiCol_Text) : InputTextWarningTextColor);
@@ -2294,7 +2294,7 @@ namespace PeepoDrumKit
 			res = Gui::ImageButton(tooltip_key, tex_id, image_size, uv0, uv1, bg_col, tint_col);
 		}
 		if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled | ImGuiHoveredFlags_ForTooltip)) {
-			ImGui::SetTooltip(tooltip_key);
+			ImGui::SetTooltip("%s", tooltip_key);
 		}
 		return res;
 	}
