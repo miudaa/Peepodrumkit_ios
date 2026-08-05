@@ -42,7 +42,7 @@ add_requires(
     })
 add_requires(
     "stb 2025.03.14",
-    "libsdl3",
+    "libsdl3"
     -- -- "icu4c"
     )
 
@@ -110,11 +110,11 @@ target("PeepoDrumKit")
         add_includedirs("/usr/include", "/usr/local/include")
         add_linkdirs("/usr/lib", "/usr/local/lib", "/usr/lib/x86_64-linux-gnu")
         add_links("soundio")
-        add_packages("imgui", "dr_libs", "stb", "thorvg", "libsdl3", -- -- "icu4c")
+        add_packages("imgui", "dr_libs", "stb", "thorvg", "libsdl3") -- -- "icu4c"
         -- Suppress specific warnings on Linux
         add_cxxflags("-fpermissive", "-Wno-changes-meaning")
     else
-        add_packages("imgui", "dr_libs", "stb", "thorvg", "libsoundio", "libsdl3", -- -- "icu4c")
+        add_packages("imgui", "dr_libs", "stb", "thorvg", "libsoundio", "libsdl3") -- -- "icu4c"
     end
     
     if is_os("windows") then
