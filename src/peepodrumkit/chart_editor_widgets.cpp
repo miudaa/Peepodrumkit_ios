@@ -6,6 +6,10 @@
 
 #include <map>
 
+// Template specialization must be at global scope
+template <>
+struct EnumCountMemberHelper<ImGuiDataType_> : std::integral_constant<ImGuiDataType_, ImGuiDataType_COUNT> {};
+
 // TODO: Populate char[U8Max] lookup table using provided flags and index into instead of using a switch (?)
 enum class EscapeSequenceFlags : u32 { NewLines };
 
@@ -160,7 +164,7 @@ namespace PeepoDrumKit
 		Gui::PushStyleColor(ImGuiCol_FrameBgHovered, Gui::GetStyleColorVec4(ImGuiCol_FrameBg));
 		Gui::PushStyleColor(ImGuiCol_FrameBgActive, Gui::GetStyleColorVec4(ImGuiCol_FrameBg));
 		if (i32 v = static_cast<i32>(*inOutLevel); Gui::SliderInt(label, &v,
-			static_cast<i32>(DifficultyLevel::Min), static_cast<i32>(DifficultyLevel::MaxSoft), "★ %d"))
+			static_cast<i32>(DifficultyLevel::Min), static_cast<i32>(DifficultyLevel::MaxSoft), "☁E%d"))
 		{
 			*inOutLevel = static_cast<DifficultyLevel>(Clamp(v, static_cast<i32>(DifficultyLevel::Min), static_cast<i32>(DifficultyLevel::Max)));
 			valueWasChanged = true;
@@ -263,8 +267,6 @@ namespace PeepoDrumKit
 		return get<ImGuiDataTypeToType<type>>(std::forward<MultiEditDataUnionT>(value));
 	}
 
-	template <>
-	struct EnumCountMemberHelper<ImGuiDataType_> : std::integral_constant<ImGuiDataType_, ImGuiDataType_COUNT> {};
 	template <typename T>
 	constexpr auto TypeToImGuiDataType = TypeToEnum<ImGuiDataTypeToType, T, ImGuiDataType_>;
 
@@ -409,7 +411,7 @@ namespace PeepoDrumKit
 		Gui::Property::PropertyTextValueFunc(label, [&]
 		{
 			static constexpr i32 components = 2; // NOTE: Unicode "Rightwards Arrow" U+2192
-			static constexpr std::string_view divisionText = "  →  "; // "  ->  "; // " < > ";
+			static constexpr std::string_view divisionText = "  ↁE "; // "  ->  "; // " < > ";
 			const f32 divisionLabelWidth = Gui::CalcTextSize(Gui::StringViewStart(divisionText), Gui::StringViewEnd(divisionText)).x;
 			const f32 perComponentInputFloatWidth = Floor(((Gui::GetContentRegionAvail().x - divisionLabelWidth) / static_cast<f32>(components)));
 
@@ -579,7 +581,7 @@ namespace PeepoDrumKit
 					Gui::TextUnformatted("- AdLibs are now shown semi-transparent instead of hidden");
 					Gui::TextUnformatted("- KaDon are now played with Don + Ka sounds instead of just Don");
 					Gui::TextUnformatted("- Balloon-type notes' pop count is now shown when they are being popped");
-					Gui::TextUnformatted("- Add “Buffer Frame Size” option for manually fixing audio distortion due to insufficient buffer size (in Settings → Audio Settings)");
+					Gui::TextUnformatted("- Add “Buffer Frame Size Eoption for manually fixing audio distortion due to insufficient buffer size (in Settings ↁEAudio Settings)");
 					Gui::TextUnformatted("- Add proper SENote assignment and the コ (Ko) SENote");
 					Gui::TextUnformatted("- Add Go-go time effect");
 					Gui::TextUnformatted("- Add support for editing any localized TITLE: and SUBTITLE: with custom locales");
@@ -619,14 +621,14 @@ namespace PeepoDrumKit
 					Gui::TextUnformatted("- Add TaikoJiro2-like note display supporting complex-valued #SCROLL and stretching rolls with bar");
 					Gui::TextUnformatted("- Add the possibility to edit notes' and long events' end position by dragging their end when selected");
 					Gui::TextUnformatted("- #JPOSSCROLL is now visualized and editable as long event");
-					Gui::TextUnformatted("- Widen playback speed range to 10%–200%");
+					Gui::TextUnformatted("- Widen playback speed range to 10% E00%");
 					Gui::TextUnformatted("- Add Chart Stats tab");
 					Gui::TextUnformatted("- Tweak difficulty number display and remove star view for decimal");
 					Gui::TextUnformatted("- Add support of editing Tower charts and view Dan charts");
-					Gui::TextUnformatted("- Add “Insert at Selected Items”, the successor of “Selection to Scroll Changes” which applies to all chart events");
+					Gui::TextUnformatted("- Add “Insert at Selected Items E the successor of “Selection to Scroll Changes Ewhich applies to all chart events");
 					Gui::TextUnformatted("- Migrate to Dear ImGui 1.92.0-docking and solve missing font glyph issues");
-					Gui::TextUnformatted("- Add “Select to End of Chart”");
-					Gui::TextUnformatted("- Add advanced chart scale options, fix “missing notes after undo” problem when scaling");
+					Gui::TextUnformatted("- Add “Select to End of Chart E);
+					Gui::TextUnformatted("- Add advanced chart scale options, fix “missing notes after undo Eproblem when scaling");
 					Gui::TextUnformatted("- (for the full change list, please refer to the commit history)");
 					Gui::TextUnformatted("");
 					Gui::PopFont();
@@ -1036,7 +1038,13 @@ namespace PeepoDrumKit
 				Gui::PushStyleColor(ImGuiCol_ButtonHovered, (Calculator.TapCount > 0 && !hasTimedOut) ? animatedButtonColor : Gui::GetStyleColorVec4(ImGuiCol_ButtonHovered));
 				Gui::PushStyleColor(ImGuiCol_ButtonActive, (Calculator.TapCount > 0 && !hasTimedOut) ? animatedButtonColor : Gui::GetStyleColorVec4(ImGuiCol_ButtonActive));
 
-				char buttonName[32]; sprintf_s(buttonName, (Calculator.TapCount == 0) ? UI_Str("ACT_TEMPO_CALCULATOR_TAP") : (Calculator.TapCount == 1) ? UI_Str("INFO_TEMPO_CALCULATOR_TAP_FIRST_BEAT") : "%.2f BPM", Calculator.LastTempo.BPM);
+				char buttonName[32];
+				if (Calculator.TapCount == 0)
+					sprintf_s(buttonName, "%s", UI_Str("ACT_TEMPO_CALCULATOR_TAP"));
+				else if (Calculator.TapCount == 1)
+					sprintf_s(buttonName, "%s", UI_Str("INFO_TEMPO_CALCULATOR_TAP_FIRST_BEAT"));
+				else
+					sprintf_s(buttonName, "%.2f BPM", Calculator.LastTempo.BPM);
 				if (tapPressed | Gui::ButtonEx(buttonName, vec2(-1.0f, Gui::GetFrameHeightWithSpacing() * 3.0f), ImGuiButtonFlags_PressedOnClick))
 				{
 					context.SfxVoicePool.PlaySound(SoundEffectType::MetronomeBeat);
@@ -1512,7 +1520,7 @@ namespace PeepoDrumKit
 							auto setV = [](TempChartItem& item, i16 v, auto&&...) { if (IsBalloonNote(item.MemberValues.NoteType())) item.MemberValues.BalloonPopCount() = v; };
 							if (SetPropertyMultiSelection(SelectedItems, widgetIn, widgetOut, getV, setV))
 								valueWasChanged = true;
-							sprintf_s(labelBuffer, UI_Str("EVENT_PROP_INTERPOLATE_%s"), label);
+							sprintf_s(labelBuffer, "%s", UI_Str("EVENT_PROP_INTERPOLATE_%s"));
 							if (DrawInterpolationProperty(labelBuffer, widgetIn, SelectedItems, getV, setV))
 								valueWasChanged = true;
 						} break;
@@ -1564,7 +1572,7 @@ namespace PeepoDrumKit
 									valueWasChanged = true;
 							}
 							for (size_t i = 0; i < 2; i++) {
-								sprintf_s(labelBuffer, UI_Str("EVENT_PROP_INTERPOLATE_%s"), labels[i]);
+								sprintf_s(labelBuffer, "%s", UI_Str("EVENT_PROP_INTERPOLATE_%s"));
 								if (DrawInterpolationProperty(labelBuffer, widgetIns[i], SelectedItems, getVs[i], setVs[i]))
 									valueWasChanged = true;
 							}
@@ -1591,7 +1599,7 @@ namespace PeepoDrumKit
 							auto setV = [](TempChartItem& item, f32 v, auto&&...) { item.MemberValues.JPOSScrollDuration() = v; };
 							if (SetPropertyMultiSelection(SelectedItems, widgetIn, widgetOut, getV, setV))
 								valueWasChanged = true;
-							sprintf_s(labelBuffer, UI_Str("EVENT_PROP_INTERPOLATE_%s"), label);
+							sprintf_s(labelBuffer, "%s", UI_Str("EVENT_PROP_INTERPOLATE_%s"));
 							if (DrawInterpolationProperty(labelBuffer, widgetIn, SelectedItems, getV, setV))
 								valueWasChanged = true;
 						} break;
@@ -1616,7 +1624,7 @@ namespace PeepoDrumKit
 							auto setV = [&](TempChartItem& item, f32 v, auto&&...) { TrySet(item.MemberValues, member, Time::FromSec(v)); };
 							if (SetPropertyMultiSelection(SelectedItems, widgetIn, widgetOut, getV, setV))
 								valueWasChanged = true;
-							sprintf_s(labelBuffer, UI_Str("EVENT_PROP_INTERPOLATE_%s"), label);
+							sprintf_s(labelBuffer, "%s", UI_Str("EVENT_PROP_INTERPOLATE_%s"));
 							if (DrawInterpolationProperty(labelBuffer, widgetIn, SelectedItems, getV, setV))
 								valueWasChanged = true;
 						} break;
@@ -1708,7 +1716,7 @@ namespace PeepoDrumKit
 							}
 
 							for (size_t i = 0; i < 3; i++) {
-								sprintf_s(labelBuffer, UI_Str("EVENT_PROP_INTERPOLATE_%s"), labels[i]);
+								sprintf_s(labelBuffer, "%s", UI_Str("EVENT_PROP_INTERPOLATE_%s"));
 								if (DrawInterpolationProperty(labelBuffer, widgetIns[i], SelectedItems, getVs[i], setVs[i], equalVss[i]))
 									valueWasChanged = true;
 							}
@@ -1741,7 +1749,7 @@ namespace PeepoDrumKit
 							};
 							if (SetPropertyMultiSelection(SelectedItems, widgetIn, widgetOut, getV, setV))
 								valueWasChanged = true;
-							sprintf_s(labelBuffer, UI_Str("EVENT_PROP_INTERPOLATE_%s"), label);
+							sprintf_s(labelBuffer, "%s", UI_Str("EVENT_PROP_INTERPOLATE_%s"));
 							if (DrawInterpolationProperty(labelBuffer, widgetIn, SelectedItems, getV, setV))
 								valueWasChanged = true;
 						} break;
@@ -1844,7 +1852,7 @@ namespace PeepoDrumKit
 							auto setV = [](TempChartItem& item, f32 v, auto&&...) { item.MemberValues.Tempo().BPM = v; };
 							if (SetPropertyMultiSelection(SelectedItems, widgetIn, widgetOut, getV, setV))
 								valueWasChanged = true;
-							sprintf_s(labelBuffer, UI_Str("EVENT_PROP_INTERPOLATE_%s"), label);
+							sprintf_s(labelBuffer, "%s", UI_Str("EVENT_PROP_INTERPOLATE_%s"));
 							if (DrawInterpolationProperty(labelBuffer, widgetIn, SelectedItems, getV, setV))
 								valueWasChanged = true;
 						} break;
@@ -1879,7 +1887,7 @@ namespace PeepoDrumKit
 							if (SetPropertyMultiSelection(SelectedItems, widgetIn, widgetOut, getV, setV))
 								valueWasChanged = true;
 							for (i32 c = 0; c < components; c++) {
-								sprintf_s(labelBuffer, UI_Str("EVENT_PROP_INTERPOLATE_%s"), label_components[c]);
+								sprintf_s(labelBuffer, "%s", UI_Str("EVENT_PROP_INTERPOLATE_%s"));
 								if (DrawInterpolationProperty(labelBuffer, widgetIn, SelectedItems, getV, setV, c))
 									valueWasChanged = true;
 							}
@@ -2740,14 +2748,14 @@ namespace PeepoDrumKit
 					if (f32 v = SuddenAppearanceOffsetAtCursor.ToSec_F32(); Gui::SpinFloat("##SuddenAppearanceOffsetAtCursor", &v, .1f, .5f, "%gs (show)"))
 						insertOrUpdateCursorSudden(Time::FromSec(v), SuddenMovementOffsetAtCursor, SuddenHideRollAtCursor);
 					Gui::SameLine(0, Gui::GetStyle().ItemInnerSpacing.x);
-					if (Gui::Button("∞##SuddenAppearanceOffsetAtCursorInfinity", { Gui::GetFrameHeight(), Gui::GetFrameHeight() }))
+					if (Gui::Button("∁E#SuddenAppearanceOffsetAtCursorInfinity", { Gui::GetFrameHeight(), Gui::GetFrameHeight() }))
 						insertOrUpdateCursorSudden(Time::FromSec(std::numeric_limits<f64>::infinity()), SuddenMovementOffsetAtCursor, SuddenHideRollAtCursor);
 
 					Gui::SetNextItemWidth(getInsertButtonWidth());
 					if (f32 v = SuddenMovementOffsetAtCursor.ToSec_F32(); Gui::SpinFloat("##SuddenMovementOffsetAtCursor", &v, .1f, .5f, "%gs (move)"))
 						insertOrUpdateCursorSudden(SuddenAppearanceOffsetAtCursor, Time::FromSec(v), SuddenHideRollAtCursor);
 					Gui::SameLine(0, Gui::GetStyle().ItemInnerSpacing.x);
-					if (Gui::Button("∞##SuddenMovementOffsetAtCursorInfinity", { Gui::GetFrameHeight(), Gui::GetFrameHeight() }))
+					if (Gui::Button("∁E#SuddenMovementOffsetAtCursorInfinity", { Gui::GetFrameHeight(), Gui::GetFrameHeight() }))
 						insertOrUpdateCursorSudden(SuddenAppearanceOffsetAtCursor, Time::FromSec(std::numeric_limits<f64>::infinity()), SuddenHideRollAtCursor);
 
 					if (b8 v = SuddenHideRollAtCursor; Gui::Checkbox(UI_Str("EVENT_SUDDEN_HIDE_ROLL"), &v))

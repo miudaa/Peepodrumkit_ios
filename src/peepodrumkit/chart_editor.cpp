@@ -1,4 +1,4 @@
-﻿#include "chart_editor.h"
+#include "chart_editor.h"
 #include "core_build_info.h"
 #include "chart_editor_undo.h"
 #include "chart_editor_widgets.h"
@@ -775,7 +775,7 @@ namespace PeepoDrumKit
 					for (const Audio::Backend backendType : availableBackends)
 					{
 						char labelBuffer[128];
-						sprintf_s(labelBuffer, UI_Str("ACT_AUDIO_USE_FMT_%s_DEVICE"), backendToString(backendType));
+							sprintf_s(labelBuffer, "%s", UI_Str("ACT_AUDIO_USE_FMT_%s_DEVICE"));
 						if (Gui::MenuItem(labelBuffer, nullptr, (backendType == currentBackend), (backendType != currentBackend)))
 							Audio::Engine.SetBackend(backendType);
 					}

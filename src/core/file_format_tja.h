@@ -247,6 +247,8 @@ namespace TJA
 				return 'p';
 			case BranchCondition::Score:
 				return 's';
+			default:
+				break;
 		}
 		return 'c'; // For "Copium"
 	}

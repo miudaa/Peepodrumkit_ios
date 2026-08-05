@@ -166,9 +166,16 @@ namespace PeepoDrumKit
 		if (style == 1)
 			return UI_Str("PLAYER_SIDE_STYLE_SINGLE");
 		char buf[32];
-		std::string res = (style == 2) ? UI_Str("PLAYER_SIDE_STYLE_DOUBLE")
-			: std::string(buf, sprintf_s(buf, UI_Str("PLAYER_SIDE_STYLE_FMT_%d_STYLE"), style));
-		std::string_view strPlaySide (buf, sprintf_s(buf, UI_Str("PLAYER_SIDE_PLAYER_FMT_%d_PLAYER"), playerSide));
+		char buf2[32];
+		std::string res;
+		if (style == 2)
+			res = UI_Str("PLAYER_SIDE_STYLE_DOUBLE");
+		else {
+			sprintf_s(buf, "%d %s", style, "style");
+			res = buf;
+		}
+		sprintf_s(buf2, "%d %s", playerSide, "player");
+		std::string_view strPlaySide(buf2, strlen(buf2));
 		res += " ("; res += strPlaySide; res += ")";
 		return res;
 	}
@@ -584,7 +591,7 @@ namespace PeepoDrumKit
 		cstr CStr;
 		Complex CPX;
 
-		inline GenericMemberUnion() { ::memset(this, 0, sizeof(*this)); }
+		inline GenericMemberUnion() { ::memset((void*)this, 0, sizeof(*this)); }
 		inline b8 operator==(const GenericMemberUnion& other) const { return (::memcmp(this, &other, sizeof(*this)) == 0); }
 		inline b8 operator!=(const GenericMemberUnion& other) const { return !(*this == other); }
 	};
@@ -986,7 +993,7 @@ namespace PeepoDrumKit
 			JPOSScrollChange JPOSScroll;
 			SuddenChange Sudden;
 
-			inline PODData() { ::memset(this, 0, sizeof(*this)); }
+			inline PODData() { ::memset((void*)this, 0, sizeof(*this)); }
 		} POD;
 
 		// NOTE: Handle separately due to constructor / destructor requirement
@@ -997,7 +1004,7 @@ namespace PeepoDrumKit
 
 		GenericListStruct(const GenericListStruct& other) {
 			// Perform a deep copy of data within the union and other members
-			::memcpy(&POD, &other.POD, sizeof(POD));
+			::memcpy((void*)&POD, (const void*)&other.POD, sizeof(POD));
 			NonTrivial = other.NonTrivial; // Copy the non-trivial data
 		}
 
