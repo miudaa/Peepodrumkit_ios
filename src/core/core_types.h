@@ -16,12 +16,31 @@
 #include <future>
 #include <chrono>
 
+#include <stdio.h>
+#include <stdarg.h>
+
 #if !defined(sprintf_s)
-#define sprintf_s(data, ...) snprintf(data, sizeof(data), __VA_ARGS__)
+template<size_t N, typename... Args>
+inline int sprintf_s(char (&buffer)[N], const char* format, Args... args) {
+    return snprintf(buffer, N, format, args...);
+}
+inline int sprintf_s(char* buffer, size_t size, const char* format, ...) {
+    va_list args;
+    va_start(args, format);
+    int result = vsnprintf(buffer, size, format, args);
+    va_end(args);
+    return result;
+}
 #endif
 
 #if !defined(vsprintf_s)
-#define vsprintf_s(data, ...) vsnprintf(data, sizeof(data), __VA_ARGS__)
+template<size_t N>
+inline int vsprintf_s(char (&buffer)[N], const char* format, va_list args) {
+    return vsnprintf(buffer, N, format, args);
+}
+inline int vsprintf_s(char* buffer, size_t size, const char* format, va_list args) {
+    return vsnprintf(buffer, size, format, args);
+}
 #endif
 
 #if !defined(strcpy_s)
