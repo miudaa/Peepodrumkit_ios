@@ -131,6 +131,7 @@ target("PeepoDrumKit")
     elseif is_os("macosx") or is_os("iphoneos") then
         add_rules("xcode.application")
         add_files("src/Info.plist")
+        add_cxxflags("-Wno-format-security")  -- suppress format-security warnings from UI_Str macro
     end
 
     if is_os("macosx") then

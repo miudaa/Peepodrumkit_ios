@@ -1635,7 +1635,7 @@ namespace PeepoDrumKit
 									disableChangePropertiesCommandMerge = true;
 								}
 								Gui::PopItemFlag();
-								Gui::SetItemTooltip(UI_Str("EVENT_PROP_SUDDEN_HIDE_ROLL_TOOLTIPS"));
+								Gui::SetItemTooltip("%s", UI_Str("EVENT_PROP_SUDDEN_HIDE_ROLL_TOOLTIPS"));
 							});
 						} break;
 						case GenericMember::F32_ScrollSpeed:
@@ -1991,7 +1991,7 @@ namespace PeepoDrumKit
 						Gui::SameLine(0, Gui::GetStyle().ItemInnerSpacing.x);
 						if (Gui::Button(("-##" + key).c_str(), {Gui::GetFrameHeight(), Gui::GetFrameHeight()}))
 							localeToRemove = &key;
-						Gui::SetItemTooltip(UI_Str("ACT_EVENT_REMOVE"));
+						Gui::SetItemTooltip("%s", UI_Str("ACT_EVENT_REMOVE"));
 					});
 				}
 				if (localeToRemove != nullptr) {
@@ -2021,7 +2021,7 @@ namespace PeepoDrumKit
 							properties.try_emplace(newDefault, "");
 						context.Undo.NotifyChangesWereMade();
 					}
-					Gui::SetItemTooltip(UI_Str("ACT_EVENT_ADD"));
+					Gui::SetItemTooltip("%s", UI_Str("ACT_EVENT_ADD"));
 					Gui::EndDisabled();
 				});
 				Gui::EndTable();
@@ -2752,7 +2752,7 @@ namespace PeepoDrumKit
 
 					if (b8 v = SuddenHideRollAtCursor; Gui::Checkbox(UI_Str("EVENT_SUDDEN_HIDE_ROLL"), &v))
 						insertOrUpdateCursorSudden(SuddenAppearanceOffsetAtCursor, SuddenMovementOffsetAtCursor, v);
-					Gui::SetItemTooltip(UI_Str("EVENT_PROP_SUDDEN_HIDE_ROLL_TOOLTIPS"));
+					Gui::SetItemTooltip("%s", UI_Str("EVENT_PROP_SUDDEN_HIDE_ROLL_TOOLTIPS"));
 
 					Gui::PushID(&course.SuddenChanges);
 					if (!disallowRemoveButton && SuddenChangeAtCursor != nullptr && SuddenChangeAtCursor->BeatTime == cursorBeat)
