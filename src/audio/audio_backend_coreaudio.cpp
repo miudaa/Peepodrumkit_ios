@@ -64,7 +64,11 @@ namespace Audio
 
 		AudioComponentDescription desc;
 		desc.componentType = kAudioUnitType_Output;
+#if TARGET_OS_IPHONE
+		desc.componentSubType = kAudioUnitSubType_RemoteIO;
+#else
 		desc.componentSubType = kAudioUnitSubType_DefaultOutput;
+#endif
 		desc.componentManufacturer = kAudioUnitManufacturer_Apple;
 		desc.componentFlags = 0;
 		desc.componentFlagsMask = 0;
@@ -123,43 +127,42 @@ namespace Audio
 			return false;
 		}
 
-		// Try to set hardware buffer size for lowest latency
-		AudioDeviceID outputDeviceID;
-		UInt32 propertySize = sizeof(AudioDeviceID);
-		if (AudioUnitGetProperty(impl->audioUnit, kAudioOutputUnitProperty_CurrentDevice, kAudioUnitScope_Global, 0, &outputDeviceID, &propertySize) == noErr)
+		// Try to set hardware buffer size for lowest latency (macOS only)
+#if !TARGET_OS_IPHONE
 		{
-			AudioObjectPropertyAddress propertyAddress = {
-				kAudioDevicePropertyBufferFrameSizeRange,
-				kAudioObjectPropertyScopeOutput,
-				kAudioObjectPropertyElementMain
-			};
-
-			AudioValueRange range;
-			propertySize = sizeof(range);
-			if (AudioObjectGetPropertyData(outputDeviceID, &propertyAddress, 0, NULL, &propertySize, &range) != noErr)
+			AudioDeviceID outputDeviceID;
+			UInt32 propertySize = sizeof(AudioDeviceID);
+			if (AudioUnitGetProperty(impl->audioUnit, kAudioOutputUnitProperty_CurrentDevice, kAudioUnitScope_Global, 0, &outputDeviceID, &propertySize) == noErr)
 			{
-				propertyAddress.mElement = kAudioObjectPropertyElementMaster;
-				AudioObjectGetPropertyData(outputDeviceID, &propertyAddress, 0, NULL, &propertySize, &range);
-			}
+				AudioObjectPropertyAddress propertyAddress = {
+					kAudioDevicePropertyBufferFrameSizeRange,
+					kAudioObjectPropertyScopeOutput,
+					kAudioObjectPropertyElementMain
+				};
 
-			// Use the hardware's minimum supported buffer size for ultra-low latency
-			UInt32 bufferFrameSize = (UInt32)range.mMinimum;
-			
-			// If the user requested something specific that is within range, we could use that,
-			// but since the goal is "lowest latency", the hardware minimum is the best we can do.
-			// bufferFrameSize = (param.DesiredFrameCount < range.mMinimum) ? (UInt32)range.mMinimum : param.DesiredFrameCount;
+				AudioValueRange range;
+				propertySize = sizeof(range);
+				if (AudioObjectGetPropertyData(outputDeviceID, &propertyAddress, 0, NULL, &propertySize, &range) != noErr)
+				{
+					propertyAddress.mElement = kAudioObjectPropertyElementMaster;
+					AudioObjectGetPropertyData(outputDeviceID, &propertyAddress, 0, NULL, &propertySize, &range);
+				}
 
-			propertyAddress.mSelector = kAudioDevicePropertyBufferFrameSize;
-			propertySize = sizeof(bufferFrameSize);
-			if (AudioObjectSetPropertyData(outputDeviceID, &propertyAddress, 0, NULL, propertySize, &bufferFrameSize) != noErr)
-			{
-				propertyAddress.mElement = kAudioObjectPropertyElementMaster;
-				AudioObjectSetPropertyData(outputDeviceID, &propertyAddress, 0, NULL, propertySize, &bufferFrameSize);
+				UInt32 bufferFrameSize = (UInt32)range.mMinimum;
+
+				propertyAddress.mSelector = kAudioDevicePropertyBufferFrameSize;
+				propertySize = sizeof(bufferFrameSize);
+				if (AudioObjectSetPropertyData(outputDeviceID, &propertyAddress, 0, NULL, propertySize, &bufferFrameSize) != noErr)
+				{
+					propertyAddress.mElement = kAudioObjectPropertyElementMaster;
+					AudioObjectSetPropertyData(outputDeviceID, &propertyAddress, 0, NULL, propertySize, &bufferFrameSize);
+				}
+
+				printf("CoreAudio: Hardware buffer size set to %u frames (Hardware Range: %.0f - %.0f)\n",
+					   bufferFrameSize, range.mMinimum, range.mMaximum);
 			}
-			
-			printf("CoreAudio: Hardware buffer size set to %u frames (Hardware Range: %.0f - %.0f)\n", 
-				   bufferFrameSize, range.mMinimum, range.mMaximum);
 		}
+#endif
 
 		status = AudioUnitInitialize(impl->audioUnit);
 		if (status != noErr)
