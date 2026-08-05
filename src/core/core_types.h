@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <cstddef>
+#include <climits>
 #include <type_traits>
 #include <algorithm>
 #include <string_view>
@@ -24,6 +25,8 @@ using b8 = bool;
 using b32 = int32_t;
 
 using cstr = const char*;
+
+constexpr i32 BitsPerByte = CHAR_BIT;
 
 #ifdef _MSC_VER
 #define __forceinline __forceinline
