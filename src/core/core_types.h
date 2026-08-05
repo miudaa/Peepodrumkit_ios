@@ -613,6 +613,14 @@ inline i64 Absolute(i64 value) { return (value >= static_cast<i64>(0)) ? value :
 inline f32 Absolute(f32 value) { return ::fabsf(value); }
 inline f64 Absolute(f64 value) { return ::fabs(value); }
 
+inline b8 ApproxmiatelySame(i8 a, i8 b) { return a == b; }
+inline b8 ApproxmiatelySame(u8 a, u8 b) { return a == b; }
+inline b8 ApproxmiatelySame(i16 a, i16 b) { return a == b; }
+inline b8 ApproxmiatelySame(u16 a, u16 b) { return a == b; }
+inline b8 ApproxmiatelySame(i32 a, i32 b) { return a == b; }
+inline b8 ApproxmiatelySame(u32 a, u32 b) { return a == b; }
+inline b8 ApproxmiatelySame(i64 a, i64 b) { return a == b; }
+inline b8 ApproxmiatelySame(u64 a, u64 b) { return a == b; }
 inline b8 ApproxmiatelySame(Complex a, Complex b, f32 threshold = std::numeric_limits<f32>::epsilon()) { return Absolute(a.GetRealPart() - b.GetRealPart()) < threshold && Absolute(a.GetImaginaryPart() - b.GetImaginaryPart()) < threshold; }
 inline b8 ApproxmiatelySame(f32 a, f32 b, f32 threshold = std::numeric_limits<f32>::epsilon()) { return Absolute(a - b) < threshold; }
 inline b8 ApproxmiatelySame(f64 a, f64 b, f64 threshold = std::numeric_limits<f64>::epsilon()) { return Absolute(a - b) < threshold; }

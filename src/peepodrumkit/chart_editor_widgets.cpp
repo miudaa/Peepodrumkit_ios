@@ -1164,8 +1164,8 @@ namespace PeepoDrumKit
 		TempChartItem* startItem = !SelectedItems.empty() ? &SelectedItems.front() : nullptr;
 		TempChartItem* endItem = !SelectedItems.empty() ? &SelectedItems.back() : nullptr;
 		T inOutStartEnd[2] = {
-			static_cast<T>(startItem ? getValue(*startItem, component) : std::nan("")),
-			static_cast<T>(endItem ? getValue(*endItem, component) : std::nan("")),
+			static_cast<T>(startItem ? getValue(*startItem, component) : (std::numeric_limits<T>::has_quiet_NaN ? std::numeric_limits<T>::quiet_NaN() : T{})),
+			static_cast<T>(endItem ? getValue(*endItem, component) : (std::numeric_limits<T>::has_quiet_NaN ? std::numeric_limits<T>::quiet_NaN() : T{})),
 		};
 
 		const b8 isSelectionTooSmall = (SelectedItems.size() < 2);
