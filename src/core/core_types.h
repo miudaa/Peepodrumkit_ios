@@ -20,17 +20,24 @@
 #include <stdarg.h>
 
 #if !defined(sprintf_s)
-#define GET_SPRINTF_S_MACRO(_1, _2, _3, NAME, ...) NAME
-#define sprintf_s_2(data, ...) snprintf(data, sizeof(data), __VA_ARGS__)
-#define sprintf_s_3(data, size, ...) snprintf(data, size, __VA_ARGS__)
-#define sprintf_s(...) GET_SPRINTF_S_MACRO(__VA_ARGS__, sprintf_s_3, sprintf_s_2)(__VA_ARGS__)
+template <size_t N, typename... Args>
+inline int sprintf_s(char (&buffer)[N], const char* format, Args&&... args) {
+    return snprintf(buffer, N, format, std::forward<Args>(args)...);
+}
+template <typename... Args>
+inline int sprintf_s(char* buffer, size_t size, const char* format, Args&&... args) {
+    return snprintf(buffer, size, format, std::forward<Args>(args)...);
+}
 #endif
 
 #if !defined(vsprintf_s)
-#define GET_VSPRINTF_S_MACRO(_1, _2, _3, NAME, ...) NAME
-#define vsprintf_s_2(data, fmt, args) vsnprintf(data, sizeof(data), fmt, args)
-#define vsprintf_s_3(data, size, fmt, args) vsnprintf(data, size, fmt, args)
-#define vsprintf_s(...) GET_VSPRINTF_S_MACRO(__VA_ARGS__, vsprintf_s_3, vsprintf_s_2)(__VA_ARGS__)
+template <size_t N>
+inline int vsprintf_s(char (&buffer)[N], const char* format, va_list args) {
+    return vsnprintf(buffer, N, format, args);
+}
+inline int vsprintf_s(char* buffer, size_t size, const char* format, va_list args) {
+    return vsnprintf(buffer, size, format, args);
+}
 #endif
 
 #if !defined(strcpy_s)
