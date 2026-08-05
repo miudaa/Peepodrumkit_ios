@@ -1437,7 +1437,7 @@ namespace PeepoDrumKit
 		fileDialog.InFilters = { { TJA::FilterName, TJA::FilterSpec }, { Shell::AllFilesFilterName, Shell::AllFilesFilterSpec }, };
 		fileDialog.InParentWindowHandle = ApplicationHost::GlobalState.NativeWindowHandle;
 
-		if (fileDialog.OpenSave() != Shell::FileDialogResult::OK)
+		if (!fileDialog.OpenSave())
 			return false;
 
 		SaveChart(context, fileDialog.OutFilePath);
@@ -1605,7 +1605,7 @@ namespace PeepoDrumKit
 		fileDialog.InFilters = { { TJA::FilterName, TJA::FilterSpec }, { Shell::AllFilesFilterName, Shell::AllFilesFilterSpec }, };
 		fileDialog.InParentWindowHandle = ApplicationHost::GlobalState.NativeWindowHandle;
 
-		if (fileDialog.OpenRead() != Shell::FileDialogResult::OK)
+		if (!fileDialog.OpenRead())
 			return false;
 
 		StartAsyncImportingChartFile(fileDialog.OutFilePath);
@@ -1619,7 +1619,7 @@ namespace PeepoDrumKit
 		fileDialog.InFilters = { { "Audio Files", "*.flac;*.ogg;*.mp3;*.wav" }, { Shell::AllFilesFilterName, Shell::AllFilesFilterSpec }, };
 		fileDialog.InParentWindowHandle = ApplicationHost::GlobalState.NativeWindowHandle;
 
-		if (fileDialog.OpenRead() != Shell::FileDialogResult::OK)
+		if (!fileDialog.OpenRead())
 			return false;
 
 		SetAndStartLoadingChartSongFileName(fileDialog.OutFilePath, undo);
@@ -1633,7 +1633,7 @@ namespace PeepoDrumKit
 		fileDialog.InFilters = { { "Image Files", "*.jpg;*.jpeg;*.png" }, { Shell::AllFilesFilterName, Shell::AllFilesFilterSpec }, };
 		fileDialog.InParentWindowHandle = ApplicationHost::GlobalState.NativeWindowHandle;
 
-		if (fileDialog.OpenRead() != Shell::FileDialogResult::OK)
+		if (!fileDialog.OpenRead())
 			return false;
 
 		SetAndStartLoadingSongJacketFileName(fileDialog.OutFilePath, undo);
