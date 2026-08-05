@@ -5,14 +5,22 @@ namespace Undo
 	using VoidVFPtr = void(**)();
 	struct PolymorphicLayoutTest { i32 DummyField; virtual void VirtualFunc() = 0; };
 
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Winvalid-offsetof"
+#pragma clang diagnostic ignored "-Wdynamic-class-memaccess"
+#endif
 	inline b8 CommandsHaveSameVFPtr(const Command& commandA, const Command& commandB)
 	{
 		// HACK: This ""technically"" may not work on different compilers as the vfptr might not be stored at the start of the object (or at all)
 		//		 and even a static_assert() of an offsetof() isn't *technically* allowed (?) although it seems to be supported by all major compilers
 		static_assert(offsetof(PolymorphicLayoutTest, DummyField) == sizeof(VoidVFPtr), "Expected virtual function table pointer at start of object");
 		static_assert(std::is_polymorphic_v<Command> && sizeof(Command) >= sizeof(VoidVFPtr), "Only polymorphic objects have virtual function tables");
-		return memcmp(&commandA, &commandB, sizeof(VoidVFPtr)) == 0;
+		return memcmp((const void*)&commandA, (const void*)&commandB, sizeof(VoidVFPtr)) == 0;
 	}
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
 
 	static auto VectorPop(std::vector<std::unique_ptr<Command>>& vectorToPop)
 	{
