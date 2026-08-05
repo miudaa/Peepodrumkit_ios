@@ -15,7 +15,7 @@ libsoundio_config = {}
 
 if is_os("windows") then
     libsoundio_config.wasapi = true
-elseif is_os("macosx") then
+elseif is_os("macosx") or is_os("iphoneos") then
     libsoundio_config.coreaudio = true
 elseif is_os("linux") then
     libsoundio_config.alsa = true
@@ -38,7 +38,8 @@ add_requires(
         configs = {
             loaders = {"svg"},
             -- log = is_mode("debug"),
-        }
+        },
+        system = false,
     })
 add_requires(
     "stb",
@@ -113,6 +114,9 @@ target("PeepoDrumKit")
         add_packages("imgui", "dr_libs", "stb", "thorvg", "libsdl3", "icu4c")
         -- Suppress specific warnings on Linux
         add_cxxflags("-fpermissive", "-Wno-changes-meaning")
+    elseif is_os("iphoneos") then
+        add_packages("imgui", "dr_libs", "stb", "thorvg", "libsoundio", "libsdl3", "icu4c")
+        add_cxxflags("-Wno-error")
     else
         add_packages("imgui", "dr_libs", "stb", "thorvg", "libsoundio", "libsdl3", "icu4c")
     end
