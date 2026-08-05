@@ -36,29 +36,29 @@ namespace PeepoDrumKit
 		void ParseSVG(std::string_view svgFileContent, f32 baseScale)
 		{
 			auto picture = tvg::Picture::gen();
-			picture->load(svgFileContent.data(), static_cast<u32>(svgFileContent.size()), "svg", false);
+			picture->load(svgFileContent.data(), static_cast<u32>(svgFileContent.size()), "svg", nullptr, false);
 			picture->size(&PictureSize.x, &PictureSize.y);
 			PictureSize *= baseScale;
 			BaseScale = baseScale;
-			PictureView = picture.get();
+			PictureView = picture;
 
 			assert(Canvas == nullptr);
-			Canvas = tvg::SwCanvas::gen();
-			Canvas->push(std::move(picture));
+			Canvas.reset(tvg::SwCanvas::gen());
+			Canvas->push(picture);
 		}
 
 		void ParseFromPath(std::string imagePath, f32 baseScale)
 		{
 			auto picture = tvg::Picture::gen();
-			picture->load(imagePath);
+			picture->load(imagePath.c_str());
 			picture->size(&PictureSize.x, &PictureSize.y);
 			PictureSize *= baseScale;
 			BaseScale = baseScale;
-			PictureView = picture.get();
+			PictureView = picture;
 
 			assert(Canvas == nullptr);
-			Canvas = tvg::SwCanvas::gen();
-			Canvas->push(std::move(picture));
+			Canvas.reset(tvg::SwCanvas::gen());
+			Canvas->push(picture);
 		}
 
 
@@ -76,7 +76,7 @@ namespace PeepoDrumKit
 			PictureView->scale(scale * BaseScale);
 			PictureView->translate(position.x, position.y);
 
-			Canvas->target(out.BGRA.get(), resolution.x, resolution.x, resolution.y, tvg::SwCanvas::ARGB8888/*_STRAIGHT*/);
+			Canvas->target(out.BGRA.get(), resolution.x, resolution.x, resolution.y, tvg::ColorSpace::ARGB8888/*_STRAIGHT*/);
 			Canvas->update(PictureView);
 			Canvas->draw();
 			Canvas->sync();
@@ -133,7 +133,7 @@ namespace PeepoDrumKit
 	ChartGraphicsResources::ChartGraphicsResources()
 	{
 		const u32 threadCount = static_cast<u32>(ClampBot(static_cast<i32>(std::thread::hardware_concurrency()) - 1, 0));
-		tvg::Initializer::init(tvg::CanvasEngine::Sw, threadCount);
+		tvg::Initializer::init(threadCount, tvg::CanvasEngine::Sw);
 
 		Data = std::make_unique<OpaqueData>();
 	}
