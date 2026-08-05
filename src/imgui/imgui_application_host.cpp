@@ -1,4 +1,4 @@
-﻿#include "imgui_application_host.h"
+#include "imgui_application_host.h"
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -19,8 +19,11 @@
 
 #if HAS_EMBEDDED_ICONS || REGENERATE_EMBEDDED_ICONS_SOURCE_CODE
 #define STBI_WINDOWS_UTF8
-#define STB_IMAGE_RESIZE_IMPLEMENTATION
+#if __has_include(<stb/stb_image_resize2.h>)
+#include <stb/stb_image_resize2.h>
+#elif __has_include(<stb/stb_image_resize.h>)
 #include <stb/stb_image_resize.h>
+#endif
 #endif
 
 struct WindowRectWithDecoration
