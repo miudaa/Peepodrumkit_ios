@@ -2,6 +2,7 @@
 #include "chart_editor_undo.h"
 #include "chart_editor_theme.h"
 #include "chart_editor_i18n.h"
+#include <iterator>
 
 namespace PeepoDrumKit
 {
@@ -443,6 +444,7 @@ namespace PeepoDrumKit
 		case NoteType::Adlib: { spr = SprID::Timeline_Note_DrumrollLong; } break;
 		case NoteType::Fuse: { spr = SprID::Timeline_Note_FuseLong; } break;
 		case NoteType::Bomb: { spr = SprID::Timeline_Note_DrumrollLong; } break;
+		default: break;
 		}
 
 		const SprInfo sprInfo = gfx.GetInfo(spr);
@@ -1901,7 +1903,7 @@ namespace PeepoDrumKit
 				if (mergeWays[idxI] > 0)
 					mergeWays[idxI] = 0; // already merged
 				res.erase(begin(res) + ordI, begin(res) + ordJ + 1);
-				std::move(std::begin(mergedItems), std::end(mergedItems), std::inserter(res, begin(res) + ordI));
+				res.insert(begin(res) + ordI, std::make_move_iterator(std::begin(mergedItems)), std::make_move_iterator(std::end(mergedItems)));
 			}
 		}
 
