@@ -57,7 +57,7 @@ namespace PeepoDrumKit
 
 		static i32 RectToTLSizeString(char* buffer, size_t bufferSize, const Rect& in)
 		{
-			return sprintf_s(buffer, (size_t)bufferSize, "%g, %g, %g, %g", in.TL.x, in.TL.y, in.GetWidth(), in.GetHeight());
+			return sprintf_s(buffer, bufferSize, "%g, %g, %g, %g", in.TL.x, in.TL.y, in.GetWidth(), in.GetHeight());
 		}
 
 	static b8 RectFromTLSizeString(std::string_view in, Rect& out)

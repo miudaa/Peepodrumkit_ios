@@ -137,7 +137,7 @@ namespace PeepoDrumKit
 			IsFirstFrame = false;
 		}
 
-		if (LoadTJAFuture.valid() && LoadTJAFuture._Is_ready())
+		if (future_is_ready(LoadTJAFuture))
 		{
 			LoadedTJAFile = LoadTJAFuture.get();
 			TJATextEditor.SetText(LoadedTJAFile.FileContentUTF8);

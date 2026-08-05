@@ -1658,7 +1658,7 @@ namespace PeepoDrumKit
 		context.Gfx.UpdateAsyncLoading();
 		context.SfxVoicePool.UpdateAsyncLoading();
 
-		if (importChartFuture.valid() && importChartFuture._Is_ready())
+		if (future_is_ready(importChartFuture))
 		{
 			const Time previousChartSongOffset = context.Chart.SongOffset;
 
@@ -1689,7 +1689,7 @@ namespace PeepoDrumKit
 		static constexpr Time maxWaveformFadeOutDelaySafetyLimit = Time::FromSec(0.5);
 		const b8 waveformHasFadedOut = (context.SongWaveformFadeAnimationCurrent <= 0.01f || loadSongStopwatch.GetElapsed() >= maxWaveformFadeOutDelaySafetyLimit);
 
-		if (loadSongFuture.valid() && loadSongFuture._Is_ready() && waveformHasFadedOut)
+		if (future_is_ready(loadSongFuture) && waveformHasFadedOut)
 		{
 			loadSongStopwatch.Stop();
 			AsyncLoadSongResult loadResult = loadSongFuture.get();
@@ -1714,7 +1714,7 @@ namespace PeepoDrumKit
 			Audio::Engine.EnsureStreamRunning();
 		}
 
-		if (loadJacketFuture.valid() && loadJacketFuture._Is_ready())
+		if (future_is_ready(loadJacketFuture))
 		{
 			AsyncLoadJacketResult loadResult = loadJacketFuture.get();
 

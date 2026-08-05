@@ -20,27 +20,17 @@
 #include <stdarg.h>
 
 #if !defined(sprintf_s)
-template<size_t N, typename... Args>
-inline int sprintf_s(char (&buffer)[N], const char* format, Args... args) {
-    return snprintf(buffer, N, format, args...);
-}
-inline int sprintf_s(char* buffer, size_t size, const char* format, ...) {
-    va_list args;
-    va_start(args, format);
-    int result = vsnprintf(buffer, size, format, args);
-    va_end(args);
-    return result;
-}
+#define GET_SPRINTF_S_MACRO(_1, _2, _3, NAME, ...) NAME
+#define sprintf_s_2(data, ...) snprintf(data, sizeof(data), __VA_ARGS__)
+#define sprintf_s_3(data, size, ...) snprintf(data, size, __VA_ARGS__)
+#define sprintf_s(...) GET_SPRINTF_S_MACRO(__VA_ARGS__, sprintf_s_3, sprintf_s_2)(__VA_ARGS__)
 #endif
 
 #if !defined(vsprintf_s)
-template<size_t N>
-inline int vsprintf_s(char (&buffer)[N], const char* format, va_list args) {
-    return vsnprintf(buffer, N, format, args);
-}
-inline int vsprintf_s(char* buffer, size_t size, const char* format, va_list args) {
-    return vsnprintf(buffer, size, format, args);
-}
+#define GET_VSPRINTF_S_MACRO(_1, _2, _3, NAME, ...) NAME
+#define vsprintf_s_2(data, ...) vsnprintf(data, sizeof(data), __VA_ARGS__)
+#define vsprintf_s_3(data, size, ...) vsnprintf(data, size, __VA_ARGS__)
+#define vsprintf_s(...) GET_VSPRINTF_S_MACRO(__VA_ARGS__, vsprintf_s_3, vsprintf_s_2)(__VA_ARGS__)
 #endif
 
 #if !defined(strcpy_s)
@@ -52,8 +42,10 @@ inline int vsprintf_s(char* buffer, size_t size, const char* format, va_list arg
 #endif
 
 template<typename R>
-  bool future_is_ready(std::future<R> const& f)
-  { return f.wait_for(std::chrono::seconds(0)) == std::future_status::ready; }
+inline bool future_is_ready(const std::future<R>& f)
+{
+	return f.valid() && f.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
+}
   
 using i8 = int8_t;
 using u8 = uint8_t;
@@ -613,10 +605,12 @@ constexpr f32 ToPercent(f32 value) { return (value * 100.0f); }
 constexpr f32 FromPercent(f32 percent) { return (percent * 0.01f); }
 
 template <typename T> constexpr T Min(T a, T b) { return (b < a) ? b : a; }
+template <typename T> constexpr T Min(std::initializer_list<T> list) { return *std::min_element(list.begin(), list.end()); }
 template <> constexpr ivec2 Min<ivec2>(ivec2 a, ivec2 b) { return { Min(a.x, b.x), Min(a.y, b.y) }; }
 template <> constexpr vec2 Min<vec2>(vec2 a, vec2 b) { return { Min(a.x, b.x), Min(a.y, b.y) }; }
 
 template <typename T> constexpr T Max(T a, T b) { return (a < b) ? b : a; }
+template <typename T> constexpr T Max(std::initializer_list<T> list) { return *std::max_element(list.begin(), list.end()); }
 template <> constexpr ivec2 Max<ivec2>(ivec2 a, ivec2 b) { return { Max(a.x, b.x), Max(a.y, b.y) }; }
 template <> constexpr vec2 Max<vec2>(vec2 a, vec2 b) { return { Max(a.x, b.x), Max(a.y, b.y) }; }
 

@@ -165,7 +165,7 @@ namespace PeepoDrumKit
 
 	void ChartGraphicsResources::UpdateAsyncLoading()
 	{
-		if (Data->LoadFuture.valid() && Data->LoadFuture._Is_ready())
+		if (future_is_ready(Data->LoadFuture))
 		{
 			Data->LoadFuture.get();
 			Data->FinishedLoading = true;

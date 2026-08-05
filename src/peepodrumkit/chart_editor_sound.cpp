@@ -45,7 +45,7 @@ namespace PeepoDrumKit
 
 	void SoundEffectsVoicePool::UpdateAsyncLoading()
 	{
-		if (LoadSoundEffectFuture.valid() && LoadSoundEffectFuture._Is_ready())
+		if (future_is_ready(LoadSoundEffectFuture))
 		{
 			AsyncLoadSoundEffectsResult loadResult = LoadSoundEffectFuture.get();
 			for (size_t i = 0; i < EnumCount<SoundEffectType>; i++)
