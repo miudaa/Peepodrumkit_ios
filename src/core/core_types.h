@@ -62,7 +62,10 @@ overloaded(Ts...) -> overloaded<Ts...>;
 
 // EnumCountMemberHelper: specialize per enum to provide Count value
 template<typename EnumType>
-struct EnumCountMemberHelper;
+struct EnumCountMemberHelper
+{
+	static constexpr auto value = EnumType::Count;
+};
   
 using i8 = int8_t;
 using u8 = uint8_t;
@@ -194,10 +197,10 @@ enum class ControlFlow : u8 { Fallthrough, Continue, Break };
 
 // NOTE: Assumes the enum class EnumType { ..., Count }; convention to be used everywhere
 template <typename EnumType>
-constexpr size_t EnumCount = static_cast<size_t>(EnumType::Count);
+constexpr size_t EnumCount = static_cast<size_t>(EnumCountMemberHelper<EnumType>::value);
 
 template <typename EnumType>
-constexpr i32 EnumCountI32 = static_cast<i32>(EnumType::Count);
+constexpr i32 EnumCountI32 = static_cast<i32>(EnumCountMemberHelper<EnumType>::value);
 
 template <typename EnumType>
 constexpr __forceinline size_t EnumToIndex(EnumType enumValue)
@@ -231,7 +234,7 @@ struct make_enum_sequence_helper<EnumType, std::integer_sequence<UnderlyingType,
 };
 
 template <typename EnumType>
-using make_enum_sequence = typename make_enum_sequence_helper<EnumType, std::make_integer_sequence<std::underlying_type_t<EnumType>, static_cast<std::underlying_type_t<EnumType>>(EnumType::Count)>>::type;
+using make_enum_sequence = typename make_enum_sequence_helper<EnumType, std::make_integer_sequence<std::underlying_type_t<EnumType>, static_cast<std::underlying_type_t<EnumType>>(EnumCountMemberHelper<EnumType>::value)>>::type;
 
 // NOTE: Shorthand of repeated initialize arguments, required when the element type has no default constructor
 //		 Example: InitializedArray<i32, 3>(42), equivalent to std::array{42, 42, 42}
@@ -889,7 +892,7 @@ enum class Endianness : u8
 	template <template <auto> typename EnumToType, typename T, typename EnumType, EnumType... Values>
 	static constexpr EnumType TypeToEnumHelper(enum_sequence<EnumType, Values...>)
 	{
-		return static_cast<EnumType>(Min({ (expect_type_v<T, EnumToType<Values>> ? static_cast<size_t>(Values) : static_cast<size_t>(EnumType::Count))... }));
+		return static_cast<EnumType>(Min({ (expect_type_v<T, EnumToType<Values>> ? static_cast<size_t>(Values) : static_cast<size_t>(EnumCountMemberHelper<EnumType>::value))... }));
 	}
 
 	template <template <auto> typename EnumToType, typename T, typename EnumType>
