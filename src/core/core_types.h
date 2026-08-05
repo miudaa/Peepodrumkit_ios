@@ -28,8 +28,8 @@
 
 #if !defined(vsprintf_s)
 #define GET_VSPRINTF_S_MACRO(_1, _2, _3, NAME, ...) NAME
-#define vsprintf_s_2(data, ...) vsnprintf(data, sizeof(data), __VA_ARGS__)
-#define vsprintf_s_3(data, size, ...) vsnprintf(data, size, __VA_ARGS__)
+#define vsprintf_s_2(data, fmt, args) vsnprintf(data, sizeof(data), fmt, args)
+#define vsprintf_s_3(data, size, fmt, args) vsnprintf(data, size, fmt, args)
 #define vsprintf_s(...) GET_VSPRINTF_S_MACRO(__VA_ARGS__, vsprintf_s_3, vsprintf_s_2)(__VA_ARGS__)
 #endif
 
