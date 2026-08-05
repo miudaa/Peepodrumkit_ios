@@ -439,11 +439,14 @@ struct Complex {
 		return oss.str();
 	}
 	// for TJA compatibility
-	std::string toStringCompat() const {
+	std::string toStringCompat(std::string_view separator = "") const {
 		std::ostringstream oss;
 		oss << std::noshowpos << this->GetRealPart();
 		if (this->GetImaginaryPart() != 0)
+		{
+			oss << separator;
 			oss << std::showpos << this->GetImaginaryPart() << 'i';
+		}
 		return oss.str();
 	}
 
@@ -621,6 +624,13 @@ template <typename T> constexpr T Clamp(T value, T min, T max) { return Min<T>(M
 template <typename T> constexpr T ClampBot(T value, T min) { return Max<T>(value, min); }
 template <typename T> constexpr T ClampTop(T value, T max) { return Min<T>(value, max); }
 
+template <typename T> constexpr T RClamp(T value, T start, T end) { return (start <= end) ? Clamp(value, start, end) : Clamp(value, end, start); }
+template <typename T> constexpr T RClampStart(T value, T start, T end) { return (start <= end) ? Max(value, start) : Min(value, start); }
+template <typename T> constexpr T RClampEnd(T value, T start, T end) { return (start <= end) ? Min(value, end) : Max(value, end); }
+
+template <typename T> constexpr b8 IntervalIntersected(T startA, T endA, T startB, T endB) { return Max(Min(startA, endA), Min(startB, endB)) <= Min(Max(startA, endA), Max(startB, endB)); }
+template <typename T> constexpr b8 IntervalSameDirection(T startA, T endA, T startB, T endB) { return Sign(endA - startA) == Sign(endB - startB); }
+
 template <typename T, typename F>
 constexpr T Lerp(T start, T end, F t) { return start * (1.0f - t) + (end * t); }
 
@@ -629,6 +639,12 @@ constexpr T LerpClamped(T start, T end, F t) { return Lerp<T>(start, end, Clamp(
 
 template <typename T, typename S> // source, target
 constexpr T ConvertRange(S oldStart, S oldEnd, T newStart, T newEnd, S value) { return (newStart + ((value - oldStart) * (newEnd - newStart) / (oldEnd - oldStart))); }
+
+template <typename T, typename S>
+constexpr std::pair<T, T> ConvertRangeInterval(S oldStart, S oldEnd, T newStart, T newEnd, S valueStart, S valueEnd)
+{
+	return { ConvertRange(oldStart, oldEnd, newStart, newEnd, valueStart), ConvertRange(oldStart, oldEnd, newStart, newEnd, valueEnd) };
+}
 
 // NOTE: It's easy to accidentally misuse these in cases where (end < start) resulting in "incorrect" clamps
 template <typename T, typename S>

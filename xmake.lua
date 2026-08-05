@@ -41,7 +41,7 @@ add_requires(
         }
     })
 add_requires(
-    "stb 2025.03.14",
+    "stb",
     "libsdl3",
     "icu4c"
     )

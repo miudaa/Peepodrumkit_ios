@@ -20,7 +20,7 @@
 #if HAS_EMBEDDED_ICONS || REGENERATE_EMBEDDED_ICONS_SOURCE_CODE
 #define STBI_WINDOWS_UTF8
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
-#include <stb/stb_image_resize2.h>
+#include <stb/stb_image_resize.h>
 #endif
 
 struct WindowRectWithDecoration
