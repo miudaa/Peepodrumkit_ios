@@ -596,7 +596,6 @@ inline vec2 RotateAround(vec2 point, vec2 pivot, Angle angle) { return Rotate(po
 constexpr i32 Sign(i32 value) { return (value < 0) ? -1 : (value > 0) ? 1 : 0; }
 constexpr f32 Sign(f32 value) { return (value < 0.0f) ? -1.0f : (value > 0.0f) ? 1.0f : 0.0f; }
 constexpr f64 Sign(f64 value) { return (value < 0.0) ? -1.0 : (value > 0.0) ? 1.0 : 0.0; }
-constexpr i32 Sign(Time value) { return (value.Seconds < 0.0) ? -1 : (value.Seconds > 0.0) ? 1 : 0; }
 inline i8  Absolute(i8  value) { return (value >= static_cast<i8>(0)) ? value : -value; }
 inline i16 Absolute(i16 value) { return (value >= static_cast<i16>(0)) ? value : -value; }
 inline i32 Absolute(i32 value) { return (value >= static_cast<i32>(0)) ? value : -value; }
@@ -799,6 +798,7 @@ struct Time
 };
 
 constexpr Time abs(Time time) { return Time::FromSec(std::abs(time.Seconds)); }
+constexpr i32 Sign(Time value) { return (value.Seconds < 0.0) ? -1 : (value.Seconds > 0.0) ? 1 : 0; }
 template <typename T>
 constexpr auto operator*(T&& v, Time time) { return time * v; }
 
