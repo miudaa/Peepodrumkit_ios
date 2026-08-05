@@ -190,7 +190,7 @@ namespace PeepoDrumKit
 	}
 }
 
-#if 1
+#if _WIN32
 #include <Windows.h>
 #include <fcntl.h>
 #include <io.h>
@@ -198,23 +198,13 @@ static void Win32SetupConsoleMagic()
 {
 	::SetConsoleOutputCP(CP_UTF8);
 	::_setmode(::_fileno(stdout), _O_BINARY);
-	// TODO: Maybe overwrite the current locale too (?)
 }
 #else
-static void Win32SetupConsoleMagic() { return; }
+static void Win32SetupConsoleMagic() {}
 #endif
 
-#if PEEPO_DEBUG
-int main(int, const char**) { Win32SetupConsoleMagic(); return PeepoDrumKit::EntryPoint(); }
-#elif PEEPO_RELEASE
-
-#if 1
-#include <Windows.h>
+#if _WIN32 && PEEPO_RELEASE
 int WinMain(HINSTANCE, HINSTANCE, LPSTR, int) { Win32SetupConsoleMagic(); return PeepoDrumKit::EntryPoint(); }
 #else
-int WinMain(void*, void*, const wchar_t*, int) { Win32SetupConsoleMagic(); return PeepoDrumKit::EntryPoint(); }
-#endif
-
-#else
-#error "Neither PEEPO_DEBUG nor PEEPO_RELEASE are defined :monkaS:"
+int main(int argc, const char** argv) { Win32SetupConsoleMagic(); return PeepoDrumKit::EntryPoint(); }
 #endif
