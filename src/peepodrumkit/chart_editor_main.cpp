@@ -190,7 +190,8 @@ namespace PeepoDrumKit
 	}
 }
 
-#if _WIN32
+
+#if _WIN32 && defined(PEEPO_RELEASE)
 #include <Windows.h>
 #include <fcntl.h>
 #include <io.h>
@@ -199,12 +200,7 @@ static void Win32SetupConsoleMagic()
 	::SetConsoleOutputCP(CP_UTF8);
 	::_setmode(::_fileno(stdout), _O_BINARY);
 }
-#else
-static void Win32SetupConsoleMagic() {}
+
+int WinMain(HINSTANCE, HINSTANCE, LPSTR, int) { Win32SetupConsoleMagic(); return PeepoDrumKit::EntryPoint(); }
 #endif
 
-#if _WIN32 && PEEPO_RELEASE
-int WinMain(HINSTANCE, HINSTANCE, LPSTR, int) { Win32SetupConsoleMagic(); return PeepoDrumKit::EntryPoint(); }
-#else
-int main(int argc, const char** argv) { Win32SetupConsoleMagic(); return PeepoDrumKit::EntryPoint(); }
-#endif

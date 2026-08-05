@@ -235,8 +235,8 @@ namespace PeepoDrumKit
 	template <typename TEvent>
 	constexpr std::string_view DisplayNameOfLongChartEvents = DisplayNameOfChartEvents<TEvent>;
 
-	template <> constexpr std::string_view DisplayNameOfChartEvent<TempoChange> = "Tempo Change";
-	template <> constexpr std::string_view DisplayNameOfChartEvent<TimeSignatureChange> = "Time Signature Change";
+	template <> constexpr inline std::string_view DisplayNameOfChartEvent<TempoChange> = "Tempo Change";
+	template <> constexpr inline std::string_view DisplayNameOfChartEvent<TimeSignatureChange> = "Time Signature Change";
 
 	// TODO: Animations for create / delete AND for moving left / right (?)
 	struct Note
@@ -255,8 +255,8 @@ namespace PeepoDrumKit
 		constexpr Beat GetStart() const { return BeatTime; }
 		constexpr Beat GetEnd() const { return BeatTime + BeatDuration; }
 	};
-	template <> constexpr std::string_view DisplayNameOfChartEvent<Note> = "Note";
-	template <> constexpr std::string_view DisplayNameOfLongChartEvent<Note> = "Long Note";
+	template <> constexpr inline std::string_view DisplayNameOfChartEvent<Note> = "Note";
+	template <> constexpr inline std::string_view DisplayNameOfLongChartEvent<Note> = "Long Note";
 
 	static_assert(sizeof(Note) == 32, "Accidentally introduced padding to Note struct (?)");
 
@@ -264,9 +264,9 @@ namespace PeepoDrumKit
 	TEvent FallbackEvent = std::declval<TEvent>(); // Forbid usage unless specialized
 
 	template <>
-	constexpr TempoChange FallbackEvent<TempoChange> = {Beat::Zero(), FallbackTempo};
+	inline constexpr TempoChange FallbackEvent<TempoChange> = {Beat::Zero(), FallbackTempo};
 	template <>
-	constexpr TimeSignatureChange FallbackEvent<TimeSignatureChange> = {Beat::Zero(), FallbackTimeSignature};
+	inline constexpr TimeSignatureChange FallbackEvent<TimeSignatureChange> = {Beat::Zero(), FallbackTimeSignature};
 
 	struct ScrollChange
 	{
@@ -274,10 +274,10 @@ namespace PeepoDrumKit
 		Complex ScrollSpeed;
 		b8 IsSelected;
 	};
-	template <> constexpr std::string_view DisplayNameOfChartEvent<ScrollChange> = "Scroll Changes";
+	template <> constexpr inline std::string_view DisplayNameOfChartEvent<ScrollChange> = "Scroll Changes";
 
 	template <>
-	constexpr ScrollChange FallbackEvent<ScrollChange> = {Beat::Zero(), Complex(1.0f, 0.0f)};
+	inline constexpr ScrollChange FallbackEvent<ScrollChange> = {Beat::Zero(), Complex(1.0f, 0.0f)};
 
 	struct ScrollType
 	{
@@ -298,10 +298,10 @@ namespace PeepoDrumKit
 			}
 		}
 	};
-	template <> constexpr std::string_view DisplayNameOfChartEvent<ScrollType> = "Scroll Type";
+	template <> constexpr inline std::string_view DisplayNameOfChartEvent<ScrollType> = "Scroll Type";
 
 	template <>
-	constexpr ScrollType FallbackEvent<ScrollType> = {Beat::Zero(), ScrollMethod::NMSCROLL};
+	inline constexpr ScrollType FallbackEvent<ScrollType> = {Beat::Zero(), ScrollMethod::NMSCROLL};
 
 	struct SuddenChange
 	{
@@ -311,10 +311,10 @@ namespace PeepoDrumKit
 		b8 HideRoll;
 		b8 IsSelected;
 	};
-	template <> constexpr std::string_view DisplayNameOfChartEvent<SuddenChange> = "Sudden";
+	template <> constexpr inline std::string_view DisplayNameOfChartEvent<SuddenChange> = "Sudden";
 
 	template <>
-	constexpr SuddenChange FallbackEvent<SuddenChange> = { Beat::Zero(), Time::FromSec(std::numeric_limits<f64>::infinity()), Time::FromSec(std::numeric_limits<f64>::infinity()), false };
+	inline constexpr SuddenChange FallbackEvent<SuddenChange> = { Beat::Zero(), Time::FromSec(std::numeric_limits<f64>::infinity()), Time::FromSec(std::numeric_limits<f64>::infinity()), false };
 
 	struct JPOSScrollChange
 	{
@@ -323,10 +323,10 @@ namespace PeepoDrumKit
 		f32 Duration;
 		b8 IsSelected;
 	};
-	template <> constexpr std::string_view DisplayNameOfChartEvent<JPOSScrollChange> = "JPOSScroll";
+	template <> constexpr inline std::string_view DisplayNameOfChartEvent<JPOSScrollChange> = "JPOSScroll";
 
 	template <>
-	constexpr JPOSScrollChange FallbackEvent<JPOSScrollChange> = {Beat::Zero(), Complex(100.0f, 0.0f), 0.f};
+	inline constexpr JPOSScrollChange FallbackEvent<JPOSScrollChange> = {Beat::Zero(), Complex(100.0f, 0.0f), 0.f};
 
 	struct BarLineChange
 	{
@@ -334,10 +334,10 @@ namespace PeepoDrumKit
 		b8 IsVisible;
 		b8 IsSelected;
 	};
-	template <> constexpr std::string_view DisplayNameOfChartEvent<BarLineChange> = "Bar Line Change";
+	template <> constexpr inline std::string_view DisplayNameOfChartEvent<BarLineChange> = "Bar Line Change";
 
 	template <>
-	constexpr BarLineChange FallbackEvent<BarLineChange> = {Beat::Zero(), true};
+	inline constexpr BarLineChange FallbackEvent<BarLineChange> = {Beat::Zero(), true};
 
 	struct GoGoRange
 	{
@@ -350,10 +350,10 @@ namespace PeepoDrumKit
 		constexpr Beat GetStart() const { return BeatTime; }
 		constexpr Beat GetEnd() const { return BeatTime + BeatDuration; }
 	};
-	template <> constexpr std::string_view DisplayNameOfChartEvent<GoGoRange> = "Go-Go Range";
+	template <> constexpr inline std::string_view DisplayNameOfChartEvent<GoGoRange> = "Go-Go Range";
 
 	template <>
-	constexpr GoGoRange FallbackEvent<GoGoRange> = {};
+	inline constexpr GoGoRange FallbackEvent<GoGoRange> = {};
 
 	struct LyricChange
 	{
@@ -361,7 +361,7 @@ namespace PeepoDrumKit
 		std::string Lyric;
 		b8 IsSelected;
 	};
-	template <> constexpr std::string_view DisplayNameOfChartEvent<LyricChange> = "Lyric Change";
+	template <> constexpr inline std::string_view DisplayNameOfChartEvent<LyricChange> = "Lyric Change";
 
 	template <>
 	inline LyricChange FallbackEvent<LyricChange> = {};
@@ -470,23 +470,23 @@ namespace PeepoDrumKit
 	template <auto ChartProject::* Attr>
 	constexpr std::string_view DisplayNameOfChartProjectAttr = ""; // defined later
 
-	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartDuration> = "Chart Duration";
-	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartTitle> = "Chart Title";
-	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartTitleLocalized> = "Chart Title Localized";
-	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartSubtitle> = "Chart Subtitle";
-	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartSubtitleLocalized> = "Chart Subtitle Localized";
-	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartCreator> = "Chart Creator";
-	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartGenre> = "Chart Genre";
-	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartLyricsFileName> = "Chart Lyrics File";
-	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::SongOffset> = "Song Offset";
-	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::SongDemoStartTime> = "Song Demo Start";
-	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::SongFileName> = "Song File";
-	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::SongJacket> = "Song Jacket";
-	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::SongVolume> = "Song Volume";
-	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::SoundEffectVolume> = "Sound Effect Volume";
-	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::BackgroundImageFileName> = "Background Image";
-	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::BackgroundMovieFileName> = "Background Movie";
-	template <> constexpr std::string_view DisplayNameOfChartProjectAttr<&ChartProject::MovieOffset> = "Movie Offset";
+	template <> constexpr inline std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartDuration> = "Chart Duration";
+	template <> constexpr inline std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartTitle> = "Chart Title";
+	template <> constexpr inline std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartTitleLocalized> = "Chart Title Localized";
+	template <> constexpr inline std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartSubtitle> = "Chart Subtitle";
+	template <> constexpr inline std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartSubtitleLocalized> = "Chart Subtitle Localized";
+	template <> constexpr inline std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartCreator> = "Chart Creator";
+	template <> constexpr inline std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartGenre> = "Chart Genre";
+	template <> constexpr inline std::string_view DisplayNameOfChartProjectAttr<&ChartProject::ChartLyricsFileName> = "Chart Lyrics File";
+	template <> constexpr inline std::string_view DisplayNameOfChartProjectAttr<&ChartProject::SongOffset> = "Song Offset";
+	template <> constexpr inline std::string_view DisplayNameOfChartProjectAttr<&ChartProject::SongDemoStartTime> = "Song Demo Start";
+	template <> constexpr inline std::string_view DisplayNameOfChartProjectAttr<&ChartProject::SongFileName> = "Song File";
+	template <> constexpr inline std::string_view DisplayNameOfChartProjectAttr<&ChartProject::SongJacket> = "Song Jacket";
+	template <> constexpr inline std::string_view DisplayNameOfChartProjectAttr<&ChartProject::SongVolume> = "Song Volume";
+	template <> constexpr inline std::string_view DisplayNameOfChartProjectAttr<&ChartProject::SoundEffectVolume> = "Sound Effect Volume";
+	template <> constexpr inline std::string_view DisplayNameOfChartProjectAttr<&ChartProject::BackgroundImageFileName> = "Background Image";
+	template <> constexpr inline std::string_view DisplayNameOfChartProjectAttr<&ChartProject::BackgroundMovieFileName> = "Background Movie";
+	template <> constexpr inline std::string_view DisplayNameOfChartProjectAttr<&ChartProject::MovieOffset> = "Movie Offset";
 
 	// NOTE: Chart Space -> Starting at 00:00.000 (as most internal calculations are done in)
 	//		  Song Space -> Starting relative to Song Offset (sometimes useful for displaying to the user)
