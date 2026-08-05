@@ -581,7 +581,7 @@ namespace PeepoDrumKit
 					Gui::TextUnformatted("- AdLibs are now shown semi-transparent instead of hidden");
 					Gui::TextUnformatted("- KaDon are now played with Don + Ka sounds instead of just Don");
 					Gui::TextUnformatted("- Balloon-type notes' pop count is now shown when they are being popped");
-					Gui::TextUnformatted("- Add “Buffer Frame Size Eoption for manually fixing audio distortion due to insufficient buffer size (in Settings ↁEAudio Settings)");
+					Gui::TextUnformatted("- Add \"Buffer Frame Size\" option for manually fixing audio distortion due to insufficient buffer size (in Settings -> Audio Settings)");
 					Gui::TextUnformatted("- Add proper SENote assignment and the コ (Ko) SENote");
 					Gui::TextUnformatted("- Add Go-go time effect");
 					Gui::TextUnformatted("- Add support for editing any localized TITLE: and SUBTITLE: with custom locales");
@@ -621,14 +621,14 @@ namespace PeepoDrumKit
 					Gui::TextUnformatted("- Add TaikoJiro2-like note display supporting complex-valued #SCROLL and stretching rolls with bar");
 					Gui::TextUnformatted("- Add the possibility to edit notes' and long events' end position by dragging their end when selected");
 					Gui::TextUnformatted("- #JPOSSCROLL is now visualized and editable as long event");
-					Gui::TextUnformatted("- Widen playback speed range to 10% E00%");
+					Gui::TextUnformatted("- Widen playback speed range to 10%-500%");
 					Gui::TextUnformatted("- Add Chart Stats tab");
 					Gui::TextUnformatted("- Tweak difficulty number display and remove star view for decimal");
 					Gui::TextUnformatted("- Add support of editing Tower charts and view Dan charts");
-					Gui::TextUnformatted("- Add “Insert at Selected Items E the successor of “Selection to Scroll Changes Ewhich applies to all chart events");
+					Gui::TextUnformatted("- Add \"Insert at Selected Items\" the successor of \"Selection to Scroll Changes\" which applies to all chart events");
 					Gui::TextUnformatted("- Migrate to Dear ImGui 1.92.0-docking and solve missing font glyph issues");
-					Gui::TextUnformatted("- Add “Select to End of Chart E);
-					Gui::TextUnformatted("- Add advanced chart scale options, fix “missing notes after undo Eproblem when scaling");
+					Gui::TextUnformatted("- Add \"Select to End of Chart\"");
+					Gui::TextUnformatted("- Add advanced chart scale options, fix \"missing notes after undo\" problem when scaling");
 					Gui::TextUnformatted("- (for the full change list, please refer to the commit history)");
 					Gui::TextUnformatted("");
 					Gui::PopFont();
