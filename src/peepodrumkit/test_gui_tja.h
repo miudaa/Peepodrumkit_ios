@@ -3,7 +3,7 @@
 #include "core_io.h"
 #include "file_format_tja.h"
 #include "imgui/imgui_include.h"
-#include "imgui/3rdparty_extension/ImGuiColorTextEdit/TextEditor.h"
+#include "imgui/ImGuiColorTextEdit/TextEditor.h"
 
 #include <stdio.h>
 #include <vector>
