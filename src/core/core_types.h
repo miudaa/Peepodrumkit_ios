@@ -202,7 +202,7 @@ struct EnumCountMemberHelper {};
 template <typename EnumType>
 struct EnumCountMemberHelper<EnumType, void_t<decltype(EnumType::Count)>> : std::integral_constant<EnumType, EnumType::Count> {};
 template <typename EnumType>
-struct EnumCountMemberHelper<EnumType, void_t<decltype(EnumType::COUNT)>> : std::integral_constant<EnumType, EnumType::COUNT> {};
+struct EnumCountMemberHelper<EnumType, std::enable_if_t<!void_v<EnumType, decltype(EnumType::Count)> && void_v<EnumType, decltype(EnumType::COUNT)>, void>> : std::integral_constant<EnumType, EnumType::COUNT> {};
 
 template <typename EnumType>
 constexpr EnumType EnumCountMember = EnumCountMemberHelper<EnumType>::value;
