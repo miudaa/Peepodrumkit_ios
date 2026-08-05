@@ -53,6 +53,16 @@ inline bool future_is_ready(const std::future<R>& f)
 {
 	return f.valid() && f.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
 }
+
+// overloaded helper for std::visit pattern (C++17)
+template<typename... Ts>
+struct overloaded : Ts... { using Ts::operator()...; };
+template<typename... Ts>
+overloaded(Ts...) -> overloaded<Ts...>;
+
+// EnumCountMemberHelper: specialize per enum to provide Count value
+template<typename EnumType>
+struct EnumCountMemberHelper;
   
 using i8 = int8_t;
 using u8 = uint8_t;
