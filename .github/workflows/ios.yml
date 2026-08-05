@@ -29,20 +29,13 @@ jobs:
     - name: Build
       run: xmake -v
 
-    - name: List build output
-      run: find build -maxdepth 6 -type d | head -40
-
     - name: Package IPA
       run: |
-        APP_PATH=$(find build -name "*.app" -maxdepth 8 | head -1)
-        echo "Found .app at: $APP_PATH"
-        if [ -z "$APP_PATH" ]; then
-          echo "ERROR: .app not found, listing build dir:"
-          find build -maxdepth 6
-          exit 1
-        fi
-        mkdir -p build/Payload
-        cp -r "$APP_PATH" build/Payload/
+        mkdir -p build/Payload/PeepoDrumKit.app
+        cp build/iphoneos/arm64/release/PeepoDrumKit build/Payload/PeepoDrumKit.app/
+        cp src/Info.plist build/Payload/PeepoDrumKit.app/
+        if [ -d "assets" ]; then cp -r assets build/Payload/PeepoDrumKit.app/; fi
+        if [ -d "locales" ]; then cp -r locales build/Payload/PeepoDrumKit.app/; fi
         cd build
         zip -r PeepoDrumKit.ipa Payload
         
