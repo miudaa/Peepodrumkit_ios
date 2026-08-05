@@ -141,9 +141,9 @@ namespace ApplicationHost
 
 	static SDL_GPUDevice *CreateSDLGPUDriver(void)
 	{
-#ifdef SDL_PLATFORM_WIN32
+#if defined(SDL_PLATFORM_WIN32)
 		std::string targetBackend = "direct3d12";
-#elifdef SDL_PLATFORM_MACOS
+#elif defined(SDL_PLATFORM_MACOS) || defined(SDL_PLATFORM_IOS) || defined(__APPLE__)
 		std::string targetBackend = "metal";
 #else
 		std::string targetBackend = "vulkan";
@@ -191,7 +191,11 @@ namespace ApplicationHost
 		auto windowPos = SDLAppState.StartupParam.WindowPosition.has_value() ? *SDLAppState.StartupParam.WindowPosition : ivec2(100, 100);
 		auto windowSize = SDLAppState.StartupParam.WindowSize.has_value() ? *SDLAppState.StartupParam.WindowSize : ivec2(1280, 720);
 
+#if defined(SDL_PLATFORM_IOS) || defined(__APPLE__)
+		SDL_WindowFlags window_flags = SDL_WINDOW_FULLSCREEN | SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_BORDERLESS;
+#else
 		SDL_WindowFlags window_flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN | SDL_WINDOW_HIGH_PIXEL_DENSITY;
+#endif
 		auto window = SDL_CreateWindow(windowTitle.c_str(), (int)(1280 * main_scale), (int)(800 * main_scale), window_flags);
 		if (window == nullptr)
 		{

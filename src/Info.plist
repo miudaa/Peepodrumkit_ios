@@ -14,10 +14,8 @@
     <string>PeepoDrumKit</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
-    <key>LSMinimumSystemVersion</key>
-    <string>10.13</string>
-    <key>NSPrincipalClass</key>
-    <string>NSApplication</string>
+    <key>MinimumOSVersion</key>
+    <string>14.0</string>
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>LSRequiresIPhoneOS</key>
