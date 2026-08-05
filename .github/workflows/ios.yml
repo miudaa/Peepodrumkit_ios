@@ -31,8 +31,10 @@ jobs:
 
     - name: Package IPA
       run: |
+        APP_PATH=$(find build -name "*.app" -type d | head -1)
+        echo "Found .app at: $APP_PATH"
         mkdir -p build/Payload
-        cp -r build/iphoneos/arm64/release/PeepoDrumKit.app build/Payload/
+        cp -r "$APP_PATH" build/Payload/
         cd build
         zip -r PeepoDrumKit.ipa Payload
         
