@@ -995,7 +995,7 @@ namespace PeepoDrumKit
 
 				// BUG: This is definitely too lenient and easily falsely triggers 1/16th after a bar start
 				// HACK: Imperfect solution for making up for the future offset skipping past the first beat(s) if they are too close to the playback start time
-				if (!metronome.HasOnPlaybackStartTimeBeenPlayed && ApproxmiatelySame(beatTime.Seconds, cursorTimeOnPlaybackStart.Seconds, 0.01f))
+				if (!metronome.HasOnPlaybackStartTimeBeenPlayed && ApproxmiatelySame(beatTime.Seconds, cursorTimeOnPlaybackStart.Seconds, static_cast<f64>(0.01)))
 				{
 					metronome.HasOnPlaybackStartTimeBeenPlayed = true;
 					metronome.LastPlayedBeatTime = beatTime;
