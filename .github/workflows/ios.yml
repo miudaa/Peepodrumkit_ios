@@ -21,10 +21,13 @@ jobs:
       run: echo "$HOME/.local/bin" >> $GITHUB_PATH
 
     - name: Configure for iOS
-      run: xmake f -p iphoneos -a arm64 -y
+      run: xmake f -p iphoneos -a arm64 --yes
+
+    - name: Install packages
+      run: xmake require --yes
 
     - name: Build
-      run: xmake -y
+      run: xmake -v
 
     - name: Package IPA
       run: |
