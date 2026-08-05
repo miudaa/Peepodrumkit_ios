@@ -79,12 +79,9 @@ int WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
 #else // _WIN32
 
-int main(int argc, const char ** argv)
+int main(int argc, char *argv[])
 {
-    CommandLine::SetCommandLineSTD(argc, argv);
-#if WIN32
-    Win32SetupConsoleMagic();
-#endif // WIN32
+    CommandLine::SetCommandLineSTD(argc, (const char**)argv);
     return PeepoDrumKit::EntryPoint();
 }
 
