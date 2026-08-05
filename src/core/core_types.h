@@ -639,7 +639,7 @@ template <typename T, typename F> // float, target
 constexpr T LerpClamped(T start, T end, F t) { return Lerp<T>(start, end, Clamp(t, 0.0f, 1.0f)); }
 
 template <typename T, typename S> // source, target
-constexpr T ConvertRange(S oldStart, S oldEnd, T newStart, T newEnd, S value) { return (newStart + ((value - oldStart) * (newEnd - newStart) / (oldEnd - oldStart))); }
+constexpr T ConvertRange(S oldStart, S oldEnd, T newStart, T newEnd, S value) { return (newStart + ((newEnd - newStart) * (value - oldStart) / (oldEnd - oldStart))); }
 
 template <typename T, typename S>
 constexpr std::pair<T, T> ConvertRangeInterval(S oldStart, S oldEnd, T newStart, T newEnd, S valueStart, S valueEnd)
