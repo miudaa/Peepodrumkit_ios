@@ -1,4 +1,4 @@
-﻿#include "chart.h"
+#include "chart.h"
 #include "core_build_info.h"
 #include <algorithm>
 
@@ -11,7 +11,7 @@ namespace PeepoDrumKit
 			char buffer[512];
 			va_list args;
 			va_start(args, fmt);
-			onMessageFunc(std::string_view(buffer, _vsnprintf_s(buffer, ArrayCount(buffer), fmt, args)), userData);
+			onMessageFunc(std::string_view(buffer, vsprintf_s(buffer, fmt, args)), userData);
 			va_end(args);
 		};
 
@@ -55,6 +55,7 @@ namespace PeepoDrumKit
 						case GenericMember::TimeSignature_V: { memberName = "TimeSignature"; isSame = (valueA.TimeSignature == valueB.TimeSignature); } break;
 						case GenericMember::CStr_Lyric: { memberName = "Lyric"; isSame = safeCStrAreSame(valueA.CStr, valueB.CStr); } break;
 						case GenericMember::I8_ScrollType: { memberName = "ScrollType"; isSame = (valueA.I16 == valueB.I16); } break;
+						default: break;
 						}
 
 						if (!isSame)

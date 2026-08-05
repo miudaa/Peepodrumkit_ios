@@ -527,6 +527,14 @@ namespace TJA
 		f32 Duration;
 	};
 
+	struct ConvertedSudden
+	{
+		Beat TimeWithinMeasure;
+		Time AppearanceOffset;
+		Time MovementOffset;
+		b8 HideRoll;
+	};
+
 	struct ConvertedMeasure
 	{
 		Beat StartTime;
@@ -537,6 +545,7 @@ namespace TJA
 		std::vector<ConvertedScrollChange> ScrollChanges;
 		std::vector<ConvertedScrollType> ScrollTypes;
 		std::vector<ConvertedJPOSScroll> JPOSScrollChanges;
+		std::vector<ConvertedSudden> SuddenChanges;
 		// BUG: Can't actually change inbetween measures..?
 		std::vector<ConvertedBarLineChange> BarLineChanges;
 		std::vector<ConvertedLyricChange> LyricChanges;
