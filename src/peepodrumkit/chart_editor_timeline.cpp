@@ -1,4 +1,4 @@
-﻿#include "chart_editor_timeline.h"
+#include "chart_editor_timeline.h"
 #include "chart_editor_undo.h"
 #include "chart_editor_theme.h"
 #include "chart_editor_i18n.h"
@@ -416,6 +416,7 @@ namespace PeepoDrumKit
 		case NoteType::Adlib: { spr = SprID::Timeline_Note_Adlib; } break;
 		case NoteType::Fuse: { spr = SprID::Timeline_Note_Fuse; } break;
 		case NoteType::Bomb: { spr = SprID::Timeline_Note_Bomb; } break;
+		default: break;
 		}
 
 		if (IsHandNote(noteType))
@@ -462,7 +463,7 @@ namespace PeepoDrumKit
 	{
 		char buffer[32]; const auto text = std::string_view(buffer, sprintf_s(buffer, "%d", popCount));
 		ImFont* const font = FontMain;
-		const f32 fontSize = (FontBaseSizes::Large * scale);
+		const f32 fontSize = (static_cast<f32>(FontBaseSizes::Large) * scale);
 		const vec2 textSize = font->CalcTextSizeA(fontSize, F32Max, -1.0f, Gui::StringViewStart(text), Gui::StringViewEnd(text));
 		const vec2 textPosition = (center - (textSize * 0.5f)) - vec2(0.0f, 1.0f);
 
@@ -1781,7 +1782,7 @@ namespace PeepoDrumKit
 				} else {
 					auto& isSplitPointJ0 = get<2>(fragmentsJ[0]);
 					isSplitPointJ0 |= isSplitPointJ;
-					std::move(begin(fragmentsJ), end(fragmentsJ), std::back_insert_iterator(fragmentsI));
+					std::move(begin(fragmentsJ), end(fragmentsJ), std::back_inserter(fragmentsI));
 					fragmented = true;
 				}
 			}
@@ -1900,7 +1901,7 @@ namespace PeepoDrumKit
 				if (mergeWays[idxI] > 0)
 					mergeWays[idxI] = 0; // already merged
 				res.erase(begin(res) + ordI, begin(res) + ordJ + 1);
-				std::move(std::begin(mergedItems), std::end(mergedItems), std::insert_iterator(res, begin(res) + ordI));
+				std::move(std::begin(mergedItems), std::end(mergedItems), std::inserter(res, begin(res) + ordI));
 			}
 		}
 
@@ -2201,7 +2202,7 @@ namespace PeepoDrumKit
 										SetBeatDuration(Max(Beat::FromTicks(1), beatDurationI = (reverse ? -duration : duration)), item);
 									});
 								});
-							std::move(begin(fragments), end(fragments), std::back_insert_iterator(itemToAdd));
+							std::move(begin(fragments), end(fragments), std::back_inserter(itemToAdd));
 						}
 					}
 
