@@ -104,7 +104,7 @@ namespace PeepoDrumKit
 			}
 			void Redo() override
 			{
-				GetEventList<EventList>(*Map).InsertOrFunc(NewValue, [&](TEvent& v, ...) { ReplacedValue = std::move(v); v = NewValue; }); // safe replace
+				GetEventList<EventList>(*Map).InsertOrFunc(NewValue, [&](TEvent& v, auto&&...) { ReplacedValue = std::move(v); v = NewValue; }); // safe replace
 				RefreshChart<TEvent>(Course, Map);
 			}
 
@@ -142,7 +142,7 @@ namespace PeepoDrumKit
 			{
 				ReplacedEvents.clear();
 				for (const auto& event : NewEvents)
-					GetEventList<EventList>(*Map).InsertOrFunc(event, [&](TEvent& v, ...) { ReplacedEvents.push_back(std::move(v)); v = event; }); // safe replace
+					GetEventList<EventList>(*Map).InsertOrFunc(event, [&](TEvent& v, auto&&...) { ReplacedEvents.push_back(std::move(v)); v = event; }); // safe replace
 				RefreshChart<TEvent>(Course, Map);
 			}
 
@@ -223,7 +223,7 @@ namespace PeepoDrumKit
 			void Redo() override
 			{
 				EventsToRemove.Redo();
-				GetEventList<EventList>(*Map).InsertOrFunc(NewValue, [&](TEvent& v, ...) { EventsToRemove.OldValues.push_back(std::move(v)); v = NewValue; }); // safe replace
+				GetEventList<EventList>(*Map).InsertOrFunc(NewValue, [&](TEvent& v, auto&&...) { EventsToRemove.OldValues.push_back(std::move(v)); v = NewValue; }); // safe replace
 				RefreshChart<TEvent>(Course, Map);
 			}
 

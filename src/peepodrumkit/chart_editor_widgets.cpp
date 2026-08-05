@@ -1,4 +1,4 @@
-﻿#include "chart_editor_widgets.h"
+#include "chart_editor_widgets.h"
 #include "chart_editor_settings.h"
 #include "chart_editor_undo.h"
 #include "chart_editor_i18n.h"
@@ -1508,8 +1508,8 @@ namespace PeepoDrumKit
 							const MultiEditWidgetResult widgetOut = GuiPropertyMultiSelectionEditWidget(label, widgetIn);
 							Gui::EndDisabled();
 
-							auto getV = [](const TempChartItem& item, ...) { return item.MemberValues.BalloonPopCount(); };
-							auto setV = [](TempChartItem& item, i16 v, ...) { if (IsBalloonNote(item.MemberValues.NoteType())) item.MemberValues.BalloonPopCount() = v; };
+							auto getV = [](const TempChartItem& item, auto&&...) { return item.MemberValues.BalloonPopCount(); };
+							auto setV = [](TempChartItem& item, i16 v, auto&&...) { if (IsBalloonNote(item.MemberValues.NoteType())) item.MemberValues.BalloonPopCount() = v; };
 							if (SetPropertyMultiSelection(SelectedItems, widgetIn, widgetOut, getV, setV))
 								valueWasChanged = true;
 							sprintf_s(labelBuffer, UI_Str("EVENT_PROP_INTERPOLATE_%s"), label);
@@ -1529,8 +1529,8 @@ namespace PeepoDrumKit
 								widgetIn.EnableStepButtons = true;
 								if (i == 0)
 								{
-									getVs[i] = [](const TempChartItem& item, ...) { return item.MemberValues.JPOSScrollMove().GetRealPart(); };
-									setVs[i] = [](TempChartItem& item, auto v, ...) { item.MemberValues.JPOSScrollMove().SetRealPart(v); };
+									getVs[i] = [](const TempChartItem& item, auto&&...) { return item.MemberValues.JPOSScrollMove().GetRealPart(); };
+									setVs[i] = [](TempChartItem& item, auto v, auto&&...) { item.MemberValues.JPOSScrollMove().SetRealPart(v); };
 									widgetIn.Value.F32 = sharedValues.JPOSScrollMove().GetRealPart();
 									widgetIn.HasMixedValues = !(commonEqualMemberFlags & EnumToFlag(member));
 									widgetIn.MixedValuesMin.F32 = mixedValuesMin.JPOSScrollMove().GetRealPart();
@@ -1544,8 +1544,8 @@ namespace PeepoDrumKit
 									widgetIn.ValueClampMax.F32 = MaxJPOSScrollMove;
 								}
 								else {
-									getVs[i] = [](const TempChartItem& item, ...) { return item.MemberValues.JPOSScrollMove().GetImaginaryPart(); };
-									setVs[i] = [](TempChartItem& item, f32 v, ...) { item.MemberValues.JPOSScrollMove().SetImaginaryPart(v); };
+									getVs[i] = [](const TempChartItem& item, auto&&...) { return item.MemberValues.JPOSScrollMove().GetImaginaryPart(); };
+									setVs[i] = [](TempChartItem& item, f32 v, auto&&...) { item.MemberValues.JPOSScrollMove().SetImaginaryPart(v); };
 									widgetIn.Value.F32 = sharedValues.JPOSScrollMove().GetImaginaryPart();
 									widgetIn.HasMixedValues = !(commonEqualMemberFlags & EnumToFlag(member));
 									widgetIn.MixedValuesMin.F32 = mixedValuesMin.JPOSScrollMove().GetImaginaryPart();
@@ -1587,8 +1587,8 @@ namespace PeepoDrumKit
 							widgetIn.ValueClampMax.F32 = MaxJPOSScrollDuration;
 
 							const MultiEditWidgetResult widgetOut = GuiPropertyMultiSelectionEditWidget(label, widgetIn);
-							auto getV = [](const TempChartItem& item, ...) { return item.MemberValues.JPOSScrollDuration(); };
-							auto setV = [](TempChartItem& item, f32 v, ...) { item.MemberValues.JPOSScrollDuration() = v; };
+							auto getV = [](const TempChartItem& item, auto&&...) { return item.MemberValues.JPOSScrollDuration(); };
+							auto setV = [](TempChartItem& item, f32 v, auto&&...) { item.MemberValues.JPOSScrollDuration() = v; };
 							if (SetPropertyMultiSelection(SelectedItems, widgetIn, widgetOut, getV, setV))
 								valueWasChanged = true;
 							sprintf_s(labelBuffer, UI_Str("EVENT_PROP_INTERPOLATE_%s"), label);
@@ -1612,8 +1612,8 @@ namespace PeepoDrumKit
 							widgetIn.EnableClamp = false;
 
 							const MultiEditWidgetResult widgetOut = GuiPropertyMultiSelectionEditWidget(label, widgetIn);
-							auto getV = [&](const TempChartItem& item, ...) { return GetOrEmpty<Time>(member, item.MemberValues).ToSec_F32(); };
-							auto setV = [&](TempChartItem& item, f32 v, ...) { TrySet(item.MemberValues, member, Time::FromSec(v)); };
+							auto getV = [&](const TempChartItem& item, auto&&...) { return GetOrEmpty<Time>(member, item.MemberValues).ToSec_F32(); };
+							auto setV = [&](TempChartItem& item, f32 v, auto&&...) { TrySet(item.MemberValues, member, Time::FromSec(v)); };
 							if (SetPropertyMultiSelection(SelectedItems, widgetIn, widgetOut, getV, setV))
 								valueWasChanged = true;
 							sprintf_s(labelBuffer, UI_Str("EVENT_PROP_INTERPOLATE_%s"), label);
@@ -1654,8 +1654,8 @@ namespace PeepoDrumKit
 								widgetIn.EnableStepButtons = true;
 								if (i == 0)
 								{
-									getVs[i] = [](const TempChartItem& item, ...) { return item.MemberValues.ScrollSpeed().GetRealPart(); };
-									setVs[i] = [](TempChartItem& item, f32 v, ...) { item.MemberValues.ScrollSpeed().SetRealPart(v); };
+									getVs[i] = [](const TempChartItem& item, auto&&...) { return item.MemberValues.ScrollSpeed().GetRealPart(); };
+									setVs[i] = [](TempChartItem& item, f32 v, auto&&...) { item.MemberValues.ScrollSpeed().SetRealPart(v); };
 									equalVss[i] = getDefaultIsEqualValues(getVs[i]);
 									widgetIn.Value.F32 = sharedValues.ScrollSpeed().GetRealPart();
 									widgetIn.HasMixedValues = !areAllScrollSpeedsTheSame;
@@ -1670,8 +1670,8 @@ namespace PeepoDrumKit
 									widgetIn.ValueClampMax.F32 = MaxScrollSpeed;
 								}
 								else if (i == 1) {
-									getVs[i] = [](const TempChartItem& item, ...) { return item.MemberValues.ScrollSpeed().GetImaginaryPart(); };
-									setVs[i] = [](TempChartItem& item, f32 v, ...) { item.MemberValues.ScrollSpeed().SetImaginaryPart(v); };
+									getVs[i] = [](const TempChartItem& item, auto&&...) { return item.MemberValues.ScrollSpeed().GetImaginaryPart(); };
+									setVs[i] = [](TempChartItem& item, f32 v, auto&&...) { item.MemberValues.ScrollSpeed().SetImaginaryPart(v); };
 									equalVss[i] = getDefaultIsEqualValues(getVs[i]);
 									widgetIn.Value.F32 = sharedValues.ScrollSpeed().GetImaginaryPart();
 									widgetIn.HasMixedValues = !areAllScrollSpeedsTheSame;
@@ -1687,8 +1687,8 @@ namespace PeepoDrumKit
 								}
 								else
 								{
-									getVs[i] = [](const TempChartItem& item, ...) { return ScrollSpeedToTempo(item.MemberValues.ScrollSpeed().GetRealPart(), item.BaseScrollTempo).BPM; };
-									setVs[i] = [](TempChartItem& item, f32 v, ...) { item.MemberValues.ScrollSpeed().SetRealPart(ScrollTempoToSpeed(Tempo(v), item.BaseScrollTempo)); };
+									getVs[i] = [](const TempChartItem& item, auto&&...) { return ScrollSpeedToTempo(item.MemberValues.ScrollSpeed().GetRealPart(), item.BaseScrollTempo).BPM; };
+									setVs[i] = [](TempChartItem& item, f32 v, auto&&...) { item.MemberValues.ScrollSpeed().SetRealPart(ScrollTempoToSpeed(Tempo(v), item.BaseScrollTempo)); };
 									equalVss[i] = [](const TempChartItem& item, f32 v, i32) { return ApproxmiatelySame(item.MemberValues.ScrollSpeed().GetRealPart(), ScrollTempoToSpeed(Tempo(v), item.BaseScrollTempo)); };
 									widgetIn.Value.F32 = sharedScrollTempo.BPM;
 									widgetIn.HasMixedValues = !areAllScrollTemposTheSame;
@@ -1732,8 +1732,8 @@ namespace PeepoDrumKit
 							widgetIn.ValueClampMax.F32 = MaxNoteTimeOffset.ToMS_F32();
 							const MultiEditWidgetResult widgetOut = GuiPropertyMultiSelectionEditWidget(label, widgetIn);
 
-							auto getV = [](const TempChartItem& item, ...) { return item.MemberValues.TimeOffset().ToMS_F32(); };
-							auto setV = [](TempChartItem& item, f32 v, ...)
+							auto getV = [](const TempChartItem& item, auto&&...) { return item.MemberValues.TimeOffset().ToMS_F32(); };
+							auto setV = [](TempChartItem& item, f32 v, auto&&...)
 							{
 								item.MemberValues.TimeOffset() = Time::FromMS(v);
 								if (ApproxmiatelySame(item.MemberValues.TimeOffset().Seconds, 0.0))
@@ -1840,8 +1840,8 @@ namespace PeepoDrumKit
 							widgetIn.ValueClampMin.F32 = MinBPM;
 							widgetIn.ValueClampMax.F32 = MaxBPM;
 							const MultiEditWidgetResult widgetOut = GuiPropertyMultiSelectionEditWidget(label, widgetIn);
-							auto getV = [](const TempChartItem& item, ...) { return item.MemberValues.Tempo().BPM; };
-							auto setV = [](TempChartItem& item, f32 v, ...) { item.MemberValues.Tempo().BPM = v; };
+							auto getV = [](const TempChartItem& item, auto&&...) { return item.MemberValues.Tempo().BPM; };
+							auto setV = [](TempChartItem& item, f32 v, auto&&...) { item.MemberValues.Tempo().BPM = v; };
 							if (SetPropertyMultiSelection(SelectedItems, widgetIn, widgetOut, getV, setV))
 								valueWasChanged = true;
 							sprintf_s(labelBuffer, UI_Str("EVENT_PROP_INTERPOLATE_%s"), label);
