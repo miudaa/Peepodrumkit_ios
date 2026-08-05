@@ -195,17 +195,45 @@ constexpr size_t EnumCount = static_cast<size_t>(EnumType::Count);
 template <typename EnumType>
 constexpr i32 EnumCountI32 = static_cast<i32>(EnumType::Count);
 
-template <typename... Ts> using void_t = void;
-
 template <typename T, typename = void>
 struct EnumCountMemberHelper {};
-template <typename EnumType>
-struct EnumCountMemberHelper<EnumType, void_t<decltype(EnumType::Count)>> : std::integral_constant<EnumType, EnumType::Count> {};
-template <typename EnumType>
-struct EnumCountMemberHelper<EnumType, std::enable_if_t<!void_v<EnumType, decltype(EnumType::Count)> && void_v<EnumType, decltype(EnumType::COUNT)>, void>> : std::integral_constant<EnumType, EnumType::COUNT> {};
 
 template <typename EnumType>
-constexpr EnumType EnumCountMember = EnumCountMemberHelper<EnumType>::value;
+struct EnumCountMemberHelper<EnumType, std::void_t<decltype(EnumType::Count)>> : std::integral_constant<EnumType, EnumType::Count> {};
+
+template <typename EnumType>
+struct EnumCountMemberHelper<EnumType, std::enable_if_t<!expect_type_v<void, std::void_t<decltype(EnumType::Count)>> && !std::is_same_v<void, std::void_t<decltype(EnumType::COUNT)>>, std::void_t<decltype(EnumType::COUNT)>>> : std::integral_constant<EnumType, EnumType::COUNT> {};
+
+// Fallback for types that have COUNT but not Count, using a more robust pattern
+template <typename T>
+struct has_COUNT {
+    template <typename U> static auto test(int) -> decltype(U::COUNT, std::true_type{});
+    template <typename U> static auto test(...) -> std::false_type;
+    static constexpr bool value = decltype(test<T>(0))::value;
+};
+
+template <typename T>
+struct has_Count {
+    template <typename U> static auto test(int) -> decltype(U::Count, std::true_type{});
+    template <typename U> static auto test(...) -> std::false_type;
+    static constexpr bool value = decltype(test<T>(0))::value;
+};
+
+template <typename EnumType, typename Enable = void>
+struct EnumCountResolver;
+
+template <typename EnumType>
+struct EnumCountResolver<EnumType, std::enable_if_t<has_Count<EnumType>::value>> {
+    static constexpr EnumType value = EnumType::Count;
+};
+
+template <typename EnumType>
+struct EnumCountResolver<EnumType, std::enable_if_t<!has_Count<EnumType>::value && has_COUNT<EnumType>::value>> {
+    static constexpr EnumType value = EnumType::COUNT;
+};
+
+template <typename EnumType>
+constexpr EnumType EnumCountMember = EnumCountResolver<EnumType>::value;
 
 template <typename... Ts> struct overloaded : Ts... { using Ts::operator()...; };
 template <typename... Ts> overloaded(Ts...) -> overloaded<Ts...>;
