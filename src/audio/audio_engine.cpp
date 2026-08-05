@@ -212,7 +212,7 @@ namespace Audio
 			const f32 endVolume = voiceData.VolumeMap.EndVolume;
 
 			// NOTE: currently pan as L/R balance rather than true stereo pan for simplicity
-			const b8 doPan = (OutputChannelCount >= 2) && !ApproxmiatelySame(voiceData.Pan, 0);
+			const b8 doPan = (OutputChannelCount >= 2) && !ApproxmiatelySame(voiceData.Pan, 0.0f);
 			const auto panGain = doPan ? GetPanGain(voiceData.Pan, PanLaw) : std::array{ 1.0f, 1.0f };
 			auto channelGain = [&](u32 iCh, f32 vol) { return (doPan && iCh < 2) ? vol * panGain[iCh] : vol; };
 
