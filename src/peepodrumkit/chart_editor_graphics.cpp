@@ -1,6 +1,10 @@
 #include "chart_editor_graphics.h"
 #include "core_io.h"
+#if __has_include(<thorvg/thorvg.h>)
 #include <thorvg/thorvg.h>
+#elif __has_include(<thorvg.h>)
+#include <thorvg.h>
+#endif
 #include <thread>
 #include <future>
 
