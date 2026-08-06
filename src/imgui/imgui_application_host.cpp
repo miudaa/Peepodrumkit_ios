@@ -108,11 +108,23 @@ namespace ApplicationHost
 		}
 
 		std::string fontFilePath = Directory::GetResourceDirectory() + "/assets/" + FontMainFileNameCurrent;
+		if (!File::Exists(fontFilePath))
+		{
+			char* prefPath = SDL_GetPrefPath("PeepoDrumKit", "PeepoDrumKit");
+			if (prefPath != nullptr)
+			{
+				std::string prefFontPath = std::string(prefPath) + "assets/" + FontMainFileNameCurrent;
+				SDL_free(prefPath);
+				if (File::Exists(prefFontPath))
+					fontFilePath = prefFontPath;
+			}
+		}
 
 		FontMain = io.Fonts->AddFontFromFileTTF(fontFilePath.c_str(), 16.0f);
 		if (FontMain == nullptr)
 		{
-			std::cout << "Failed to load font file at: " << fontFilePath << std::endl;
+			std::cout << "Failed to load font file at: " << fontFilePath << ", using default font." << std::endl;
+			FontMain = io.Fonts->AddFontDefault();
 		}
 		else
 		{

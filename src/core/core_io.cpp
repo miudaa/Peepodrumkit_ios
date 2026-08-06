@@ -262,6 +262,15 @@ namespace Directory
 
 	std::string GetExecutableDirectory()
 	{
+		char* basePath = SDL_GetBasePath();
+		if (basePath != nullptr)
+		{
+			std::string path(basePath);
+			SDL_free(basePath);
+			if (!path.empty() && (path.back() == '/' || path.back() == '\\'))
+				path.pop_back();
+			return path;
+		}
 		return std::filesystem::path(GetExecutablePath()).parent_path().string();
 	}
 	

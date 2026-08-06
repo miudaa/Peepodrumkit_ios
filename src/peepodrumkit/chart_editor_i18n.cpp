@@ -1,4 +1,4 @@
-﻿#include "chart_editor_i18n.h"
+#include "chart_editor_i18n.h"
 
 namespace PeepoDrumKit::i18n
 {
@@ -71,46 +71,63 @@ namespace PeepoDrumKit::i18n
 			std::string("English")
 		});
 
-		std::filesystem::directory_iterator dirIter("locales");
-		for (const auto& entry : dirIter)
+		std::string localesDir = Directory::GetResourceDirectory() + "/locales";
+		std::error_code ec;
+		std::filesystem::directory_iterator dirIter(localesDir, ec);
+		if (ec)
 		{
-			if (entry.is_regular_file())
+			char* prefPath = SDL_GetPrefPath("PeepoDrumKit", "PeepoDrumKit");
+			if (prefPath != nullptr)
 			{
-				std::fstream localeFile(entry.path(), std::ios::in);
-				std::stringstream strBuffer;
-				strBuffer << localeFile.rdbuf();
-				std::string content = strBuffer.str();
-				localeFile.close();
+				std::string prefLocalesDir = std::string(prefPath) + "locales";
+				SDL_free(prefPath);
+				ec.clear();
+				dirIter = std::filesystem::directory_iterator(prefLocalesDir, ec);
+			}
+		}
 
-				using namespace PeepoDrumKit::Ini;
+		if (!ec)
+		{
+			for (const auto& entry : dirIter)
+			{
+				if (entry.is_regular_file())
+				{
+					std::fstream localeFile(entry.path(), std::ios::in);
+					std::stringstream strBuffer;
+					strBuffer << localeFile.rdbuf();
+					std::string content = strBuffer.str();
+					localeFile.close();
 
-				std::string_view sectionName;
-				LocaleEntry localeEntry {
-					std::string(),
-					std::string()
-				};
+					using namespace PeepoDrumKit::Ini;
 
-				IniParser iniParser;
+					std::string_view sectionName;
+					LocaleEntry localeEntry {
+						std::string(),
+						std::string()
+					};
+					IniParser iniParser;
 
-				auto sectionFunc = [&](const IniParser::SectionIt& section) {};
+					auto sectionFunc = [&](const IniParser::SectionIt& section) {};
 
-				auto keyValueFunc = [&](const IniParser::KeyValueIt& keyValue) {
-					if (iniParser.CurrentSection != "Info") return;
+					auto keyValueFunc = [&](const IniParser::KeyValueIt& keyValue) {
+						if (iniParser.CurrentSection != "Info") return;
+						if (keyValue.Key == "Name")
+						{
+							localeEntry.name = std::string(keyValue.Value);
+						}
+						else if (keyValue.Key == "Lang")
+						{
+							localeEntry.id = std::string(keyValue.Value);
+						}
+					};
 
-					if (keyValue.Key == "Name")
+					iniParser.ForEachIniKeyValueLine(content, sectionFunc, keyValueFunc);
+
+					if (!localeEntry.id.empty() && !localeEntry.name.empty() && localeEntry.id != "en")
 					{
-						localeEntry.name = std::string(keyValue.Value);
+						LocaleEntries.push_back(localeEntry);
 					}
-					else if (keyValue.Key == "Lang")
-					{
-						localeEntry.id = std::string(keyValue.Value);
-					}
-				};
-
-				iniParser.ForEachIniKeyValueLine(content, sectionFunc, keyValueFunc);
-
-				if (localeEntry.id != "en")
-					LocaleEntries.push_back(localeEntry);
+				}
 			}
 		}
 		HashStringMapMutex.unlock();
@@ -121,7 +138,20 @@ namespace PeepoDrumKit::i18n
 		HashStringMapMutex.lock();
 		std::cout << "Reloading locale to id " << languageId << std::endl;
 		InitBuiltinLocaleWithoutLock();
-		std::string localeFilePath = "locales/" + std::string(languageId) + ".ini";
+
+		std::string localeFilePath = Directory::GetResourceDirectory() + "/locales/" + std::string(languageId) + ".ini";
+		if (!File::Exists(localeFilePath))
+		{
+			char* prefPath = SDL_GetPrefPath("PeepoDrumKit", "PeepoDrumKit");
+			if (prefPath != nullptr)
+			{
+				std::string prefLocalePath = std::string(prefPath) + "locales/" + std::string(languageId) + ".ini";
+				SDL_free(prefPath);
+				if (File::Exists(prefLocalePath))
+					localeFilePath = prefLocalePath;
+			}
+		}
+
 		std::fstream localeFile(localeFilePath, std::ios::in);
 		if (!localeFile.is_open())
 		{
