@@ -1,4 +1,6 @@
 #include "chart_editor_i18n.h"
+#include "core_io.h"
+#include <SDL3/SDL.h>
 
 namespace PeepoDrumKit::i18n
 {
