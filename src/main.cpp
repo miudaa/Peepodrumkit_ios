@@ -1,9 +1,6 @@
+#define SDL_MAIN_HANDLED
 #include "peepodrumkit/chart_editor_main.h"
 #include "core/core_io.h"
-
-#if defined(__APPLE__) || defined(SDL_PLATFORM_IOS)
-#include <SDL3/SDL_main.h>
-#endif
 
 #if _WIN32
 
